@@ -5,7 +5,7 @@ title: Testing & quality assurance
 
 # Institutional verification and QA
 
-**fluxrig** is engineered for institutional critical paths. Our Quality Assurance (QA) posture is based on the principle that "almost working" is an architectural failure. We employ a tiered, high-fidelity testing strategy that separates process reliability from business protocol accuracy, utilizing the platform as its own **Verification Suite**.
+**fluxrig** is engineered for institutional critical paths. Our Quality Assurance (QA) posture is based on the principle that "almost working" is an architectural failure. We employ a tiered testing strategy that separates process reliability from business protocol accuracy, utilizing the platform as its own **Verification Suite**.
 
 ---
 
@@ -75,7 +75,7 @@ In a "Hard Engineering" environment, a passing test suite is not just the absenc
 
 ---
 
-## High-fidelity load generation
+## Load generation
 We use the native **[iso8583-tool](../reference/tools/iso8583_tool.md)** to simulate real-world transaction patterns against the **Data Plane**.
 
 *   **Mode**: Load / Stress / Latency-Injection.

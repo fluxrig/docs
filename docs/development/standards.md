@@ -5,7 +5,7 @@ title: Engineering standards
 
 # Technical engineering standards
 
-This document defines the high-performance technical standards and **Technical Invariants** for the **fluxrig** ecosystem. Adherence to these rules ensures the platform remains deterministic, secure, and maintainable across disparate edge environments.
+This document defines the technical standards and **Technical Invariants** for the **fluxrig** ecosystem. Adherence to these rules ensures the platform remains deterministic, secure, and maintainable across disparate edge environments.
 
 ## Go idioms and style
 
@@ -22,17 +22,17 @@ We follow standard Go conventions (Effective Go) with strict enforcement via `go
 ## Error handling and the trace standard
 Error handling is an architectural component of system reliability, not an afterthought.
 
-*   **The Contextual Wrap**: Always wrap errors using `%w` to maintain a high-fidelity trace.
+*   **The Contextual Wrap**: Always wrap errors using `%w`, so the chain of causes survives to the caller that reports it.
     - `return fmt.Errorf("failed to process signal %s: %w", signalID, err)`
 *   **The Double-Log Policy**: Never log an error *and* return it to the same caller. Log at the architectural boundary or the highest possible consumer to avoid signal duplication.
-*   **Structured Attributes**: When returning high-fidelity errors, ensure the error type itself is verifiable using `errors.Is` or `errors.As`.
+*   **Structured Attributes**: When returning an error, ensure the error type itself is verifiable using `errors.Is` or `errors.As`.
 
 ## Concurrency and lifecycle
 *   **Context propagation**: Pass `context.Context` as the first argument to all hardware, I/O, or long-running operations.
 *   **Goroutine hygiene**: Never start a goroutine without a clear termination plan. Use `sync.WaitGroup` or `golang.org/x/sync/errgroup` to manage lifecycles.
 
 ## Design for testability
-We prioritize **Interface-Driven Development** to ensure high-fidelity testing.
+We prioritize **Interface-Driven Development** so a collaborator can be replaced by a test double.
 
 - **Dependency Injection**: Never hardcode global singletons (e.g., a DB connection) inside a package. Pass interfaces via constructors (`New...` functions).
 - **Mocks & Fakes**: Packages must provide internal "Fakes" for their primary interfaces to support unit testing in downstream modules without external dependencies.

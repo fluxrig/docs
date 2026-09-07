@@ -1,22 +1,40 @@
-# FluxRig Documentation Source
+# fluxrig documentation
 
-This repository contains the public documentation source for [fluxrig.org](https://fluxrig.org).
+The published documentation for [fluxrig.org](https://fluxrig.org).
 
-## Structure
+fluxrig routes, transforms and observes data streams across heterogeneous
+environments. The engine itself lives at
+[jaab-tech/fluxrig](https://github.com/jaab-tech/fluxrig).
 
-- `docs/`: Markdown source files for all public documentation.
-- `main` branch: Contains the documentation source code (Markdown).
-- `gh-pages` branch: Contains the generated static website (HTML/JS/CSS).
+## What is here
 
-## Contributing
+- `docs/`: the Markdown the site is built from, one directory per section.
+- `VERSION`: the release this snapshot documents.
+- `CNAME`: the domain the site answers on.
 
-We welcome contributions to our documentation! To suggest changes:
+The site is built with [Docusaurus](https://docusaurus.io) and served by
+Cloudflare Pages. There is no `gh-pages` branch and no GitHub Pages build: the
+HTML is produced by the release pipeline and deployed from there.
 
-1. Fork this repository.
-2. Edit the files in the `docs/` directory.
-3. Submit a Pull Request.
+## How this repository is updated
 
-The live site is automatically updated after your changes are merged.
+This is a published mirror, not the working line. Each release replaces its
+contents with the documentation for the version in `VERSION`, so a commit made
+here is overwritten by the next release rather than merged into anything.
+
+That has one consequence worth stating plainly: **a pull request against this
+repository cannot be released**. It would be reverted by the next publish.
+
+## Reporting a problem
+
+Something wrong, unclear, or out of date is worth an
+[issue](https://github.com/fluxrig/docs/issues), and the more precisely it names
+the page the faster it is fixed. Corrections are made on the working line and
+reach this repository with the release that carries them.
+
+For contributions to fluxrig itself, see
+[Governance & contributing](https://fluxrig.org/docs/development/contributing).
 
 ---
-© 2026 JAAB Tech
+
+Made with ❤️ in Uruguay 🇺🇾 by [JAAB Tech](https://jaab.tech). © 2026 JAAB Tech SAS.

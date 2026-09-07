@@ -8,14 +8,14 @@ slug: /architecture/ai-strategy
 <!-- Copyright (c) 2026 JAAB Tech SAS, Uruguay All Rights Reserved -->
 <!-- See https://jaab.tech -->
 
-**fluxrig** leverages Artificial Intelligence to enhance engineering productivity and operational intelligence while adhering to a strict policy of **Determinism** and **Sovereign Security**. We treat AI as a high-fidelity augment to human engineering, not a replacement for deterministic business logic.
+**fluxrig** leverages Artificial Intelligence to enhance engineering productivity and operational intelligence while adhering to a strict policy of **Determinism** and **Sovereign Security**. We treat AI as an augment to human engineering, not a replacement for deterministic business logic.
 
 > [!IMPORTANT]
 > **Forged by AI for AI**: **fluxrig** holds a unique heritage. The platform was engineered through human oversight augmented by deep agentic workflows, ensuring the architecture is optimized for both human readability and machine-assisted orchestration.
 
 ## The auxiliary signal processor
 
-The platform treats Artificial Intelligence and Machine Learning as an **Auxiliary Signal Processor**, similar to how a professional audio mixer handles complex spectrum analysis or side-chain compression. This allows for deep operational insights without ever impacting the primary, high-performance "Dry Signal" (the transactional hot-path).
+The platform treats Artificial Intelligence and Machine Learning as an **Auxiliary Signal Processor**, similar to how a professional audio mixer handles complex spectrum analysis or side-chain compression. This allows for deep operational insights without ever impacting the primary, "Dry Signal" (the transactional hot-path).
 
 ### The dry vs. wet signal boundary
 
@@ -65,7 +65,7 @@ graph LR
 
 **fluxrig** is designed as a headless engine that integrates with modern service orchestrators. While AI can suggest optimizations, such as a more efficient routing topology, all changes must pass through a strict **Human-in-the-Loop** gate before deployment.
 
-*   **Generative Scenario Design**: Local AI can synthesize representative traffic patterns, allowing for high-fidelity simulation in the Verification Rig without exposing real production data.
+*   **Generative Scenario Design**: Local AI can synthesize representative traffic patterns, allowing for simulation in the Verification Rig without exposing real production data.
 *   **Agentic Workflows**: High-level business process automation (e.g., automated alerts or incident triage) happens in the central automation hub, isolated from the time-critical execution plane.
 
 ## Local anomaly and explainability (XAI)
@@ -83,7 +83,7 @@ Detection is only half the battle. Operators must understand the rationale behin
 | :--- | :--- | :--- |
 | **Routing Rules** | Deterministic Matcher | Hot Path (Zero Hallucination) |
 | **Anomaly Detection** | Tensor Runtimes | Side-Chain Scoring / Signal Tap |
-| **Synthetic Data** | Generative Models | High-Fidelity Load Testing |
+| **Synthetic Data** | Generative Models | Load testing without production data |
 | **Scenario Assistant** | Small Language Model (SLM) | Documentation & Scenario Drafting |
 
 > [!CAUTION]

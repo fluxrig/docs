@@ -18,7 +18,7 @@ title: Gear Architecture
 
 The architecture categorizes Gears based on their performance profile, security boundary, and deployment lifecycle.
 
-### Native gear (Static / High-performance)
+### Native gear (compiled in)
 *   **Role**: **Hardware Interfacing & System Access**.
 *   **Use Case**: Low-level I/O (TCP/UDP sockets, Serial, File system) and logic requiring native CPU instructions for ultra-low latency.
 *   **Implementation**: Written in **Go** and compiled directly into the **Rack** binary.
@@ -73,12 +73,12 @@ A **Wire** endpoint is dot-separated, and **every segment is a single token that
 | `iso-inbound.out` | *(from the gear's `deploy`)* | `iso-inbound` | `out` |
 | `worker-a.restore.out` | `worker-a` | `restore` | `out` |
 
-- **`gear.port`** — the rack is resolved from the gear's `deploy` target. This is the everyday form; wires stay placement-agnostic (move a gear to another rack by changing one `deploy:` line, no wire edits).
-- **`rack.gear.port`** — an explicit rack or replica instance, for cross-rack wiring and horizontal replication.
+- **`gear.port`**: the rack is resolved from the gear's `deploy` target. This is the everyday form; wires stay placement-agnostic (move a gear to another rack by changing one `deploy:` line, no wire edits).
+- **`rack.gear.port`**: an explicit rack or replica instance, for cross-rack wiring and horizontal replication.
 
 Naming rules, enforced at import:
 
-- **Port names carry no dots.** Roles and fan-out use underscores instead — `in_reply`, `out_scheme_a`, `out_response_west`. This is what keeps `a.b.c` unambiguously `rack.gear.port` rather than a gear with a dotted port.
+- **Port names carry no dots.** Roles and fan-out use underscores instead: `in_reply`, `out_scheme_a`, `out_response_west`. This is what keeps `a.b.c` unambiguously `rack.gear.port` rather than a gear with a dotted port.
 - Every segment (rack, gear, port) is lowercase `[a-z0-9_-]+`, **non-empty** (no leading, trailing, or doubled dots).
 
 > [!IMPORTANT]
@@ -113,7 +113,7 @@ To ensure deterministic behavior and simplified troubleshooting, Gears adhere to
 | :--- | :--- |
 | **`Init`** | Loads configuration, establishes internal service bindings via the **GearContext**, and registers observability metrics. |
 | **`Start`** | Signals the gear to begin active operations (e.g., opening listener sockets or initializing Wasm sandboxes). |
-| **`Process`** | The high-performance hot-path for processing incoming data, performing validation, and executing business logic. |
+| **`Process`** | The hot-path for processing incoming data, performing validation, and executing business logic. |
 | **`Drain`** | Instructs the gear to complete pending transactions without accepting new input to prevent data loss. |
 | **`Stop`** | Final graceful resource recovery, closing physical sockets and flushing remaining buffers. |
 

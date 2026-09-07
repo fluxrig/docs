@@ -11,11 +11,11 @@ Before dropping into Go code, remember the **Orchestration Spectrum**:
 
 *   **Declarative Logic**: The majority of business logic patterns (including normalization, mapping, and alerting) are most efficiently implemented using the **[Bento Gear](../reference/gears/bento.md)**. This declarative approach significantly reduces development overhead and long-term maintenance complexity.
 *   **Polyglot Business Rules**: For secure, sandboxed execution of custom business logic in languages like Rust, Zig, or AssemblyScript, use the **[Wasm Logic Gear](../reference/gears/wasm_logic.md)**. See the **[Building Wasm Gears in Zig](./building_wasm_gears_zig.md)** tutorial.
-*   **Specialized Protocols**: For high-performance protocol drivers (ISO 8583, Modbus), binary packers, or customized network stacks, you develop **Native Go Gears**.
+*   **Specialized Protocols**: For protocol drivers (ISO 8583, Modbus), binary packers, or customized network stacks, you develop **Native Go Gears**.
 
 ## Prerequisites: The gear contract
 
-A **Gear** is a modular plugin that satisfies the `sdk.NativeGear` interface. Unlike generic plugins, native Gears have direct access to the high-fidelity services of the hosting **Rack**, including structured logging, deterministic ID generation, and the OpenTelemetry signal path.
+A **Gear** is a modular plugin that satisfies the `sdk.NativeGear` interface. Unlike generic plugins, native Gears have direct access to the services of the hosting **Rack**, including structured logging, deterministic ID generation, and the OpenTelemetry signal path.
 
 The lifecycle of a Gear follows a strict state machine to ensure zero-loss operations:
 
@@ -44,7 +44,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/jaab-tech/fluxrig/pkg/fluxMsg"
+	"github.com/jaab-tech/fluxrig/pkg/fluxmsg"
 	"github.com/jaab-tech/fluxrig/pkg/sdk"
 )
 
@@ -53,9 +53,17 @@ type Gear struct {
 	config *Config
 	log    *slog.Logger
 	ctx    sdk.GearContext
-	emit   func(*fluxMsg.fluxMsg)
+	emit   func(*fluxmsg.FluxMsg)
 
 	impl ModeImpl // Delegated to server or client logic
+}
+
+// ModeImpl is whatever this gear delegates its lifecycle to. Splitting it lets
+// one gear serve two directions without branching in every method.
+type ModeImpl interface {
+	Start(ctx context.Context) error
+	Drain(ctx context.Context) error
+	Stop() error
 }
 
 // Ensure interface compliance at compile time
@@ -98,10 +106,10 @@ func (g *Gear) Init(ctx sdk.GearContext) error {
 
 ## Step 3: Active lifecycle ignition
 
-The `Start` method begins the Gear's operational life. It provides the `emit` callback, allowing the Gear to inject signals into the high-performance signal path.
+The `Start` method begins the Gear's operational life. It provides the `emit` callback, allowing the Gear to inject signals into the signal path.
 
 ```go
-func (g *Gear) Start(ctx context.Context, emit func(*fluxMsg.fluxMsg)) error {
+func (g *Gear) Start(ctx context.Context, emit func(*fluxmsg.FluxMsg)) error {
 	g.log.Info("starting gear")
 	g.emit = emit
 
@@ -174,7 +182,7 @@ func (s *Server) handleConn(conn net.Conn) {
 		payload := make([]byte, len(data))
 		copy(payload, data) 
 
-		msg := fluxMsg.New()
+		msg := fluxmsg.New()
 		msg.flux_id, _ = s.idGen.NextFluxID()
 		msg.RawPayload = payload
 
@@ -194,7 +202,7 @@ func (s *Server) handleConn(conn net.Conn) {
 The `Process` method handles asynchronous signals returning from the pipeline. We use the **Signal Metadata** to route the response back to the correct physical socket.
 
 ```go
-func (s *Server) Process(ctx context.Context, msg *fluxMsg.fluxMsg) (*fluxMsg.fluxMsg, error) {
+func (s *Server) Process(ctx context.Context, msg *fluxmsg.FluxMsg) (*fluxmsg.FluxMsg, error) {
 	//  Resolve session from metadata
 	connID, ok := msg.Metadata["conn.id"]
 	if !ok {
@@ -207,7 +215,7 @@ func (s *Server) Process(ctx context.Context, msg *fluxMsg.fluxMsg) (*fluxMsg.fl
 	}
 	conn := val.(*Connection)
 
-	//  High-Fidelity Signal Egress
+	//  Signal egress
 	if len(msg.RawPayload) > 0 {
 		_, err := conn.conn.Write(msg.RawPayload)
 		if err != nil {
@@ -221,20 +229,54 @@ func (s *Server) Process(ctx context.Context, msg *fluxMsg.fluxMsg) (*fluxMsg.fl
 
 ---
 
-## Step 7: Technical verification
+## Step 7: Shutting down
 
-Every specialized Gear must undergo **High-Fidelity Unit Verification** to ensure the logic remains resilient across releases.
+`Drain` and `Stop` are the other half of the contract, and the compile-time
+check above fails without them.
+
+```go
+// Drain stops taking new work and lets what is already in flight finish. It is
+// called before Stop and carries a deadline: returning early is fine, running
+// past it is not.
+func (g *Gear) Drain(ctx context.Context) error {
+	g.log.Info("draining gear")
+	if g.impl == nil {
+		return nil
+	}
+	return g.impl.Drain(ctx)
+}
+
+// Stop releases everything the gear holds. It runs after Drain, and must be
+// safe to call on a gear that never started: a Rack that fails during startup
+// stops what it already built.
+func (g *Gear) Stop() error {
+	g.log.Info("stopping gear")
+	if g.impl == nil {
+		return nil
+	}
+	return g.impl.Stop()
+}
+```
+
+Both must be idempotent. A gear that panics or blocks the second time it is
+stopped turns an orderly shutdown into a hung process.
+
+---
+
+## Step 8: Technical verification
+
+Every specialized Gear must carry **unit verification** that keeps the logic remains resilient across releases.
 
 ```go
 // pkg/gears/native/my_gear/gear_test.go
-func TestMyGear_Process(t *testing.T) {
-	g := &MyGear{}
+func TestGear_Process(t *testing.T) {
+	g := &Gear{}
 	// Mock the institutional context
 	ctx := sdk.NewMockGearContext(map[string]any{"threshold": 100})
 	
 	_ = g.Init(ctx)
 	
-	msg := fluxMsg.New()
+	msg := fluxmsg.New()
 	msg.RawPayload = []byte("SIGNAL_DATA")
 
 	out, err := g.Process(context.Background(), msg)

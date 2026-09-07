@@ -16,7 +16,7 @@ The **Side-Chain Inference** pattern `[Roadmap]` is the intended architectural s
 
 Integrating an AI model (e.g., via the **Sovereign AI Bridge**) follows a three-stage lifecycle: **Tap**, **Infer**, and **Feed**.
 
-### 1. The Signal Tap (Aux Send)
+### The signal tap (aux send)
 A dedicated Gear (often the **[Bento Gear](../reference/gears/bento.md)**) acts as an "Aux Send". It receives a clone of the `fluxMsg` from the main logic flow.
 
 ```yaml
@@ -27,13 +27,13 @@ wires:
     to:   business-logic.in # The Hot Path
 ```
 
-### 2. Isolated Inference (Sovereign Bridge)
+### Isolated inference (sovereign bridge)
 The Bridge Gear transmits the signal to a local inference engine (e.g., Ollama, TensorRT, or a specialized Sovereign AI node). 
 
 *   **Out-of-Process**: Inference happens outside the Rack's core execution loop to prevent CPU/Memory starvation.
 *   **Non-Blocking**: The primary business logic continues to execute while the AI model is "thinking."
 
-### 3. Metadata Feedback Loop
+### Metadata feedback loop
 Once the AI model completes its analysis, the Bridge Gear emits a **Feedback Signal**. Since the original message has already moved forward, the AI result is typically attached to the **Signal Metadata** of the *next* related signal or stored in a shared state (e.g., **[Coat Check](../reference/gears/coatcheck.md)**).
 
 ```go

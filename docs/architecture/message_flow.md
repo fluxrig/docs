@@ -9,7 +9,6 @@ slug: /architecture/message-flow
 <!-- See https://jaab.tech -->
 
 
-# Message flow and integrity
 
 ## Parallel processing and concurrency
 
@@ -45,10 +44,15 @@ Every **Wire** is **unidirectional**: it moves messages from exactly one output 
 
 Not all data requires the same durability profile. **fluxrig** allows you to optimize the **Wire** per-flow based on the performance and durability requirements.
 
-| Strategy | Transport | Durability | Latency (Typical) | Industry Use Case |
+| Strategy | Transport | Durability | Status | Industry Use Case |
 | :--- | :--- | :--- | :--- | :--- |
-| **Standard** | **NATS JetStream** | **Durable** | **1 - 3ms** | High-Assurance Payments, Auditable IoT, Finality. |
-| **Turbo** | **Go Channels**    | **Volatile** | **< 10µs**       | (Planned) Intranode High-Speed Logic. |
+| **Standard** | **NATS JetStream** | Persisted before it is acknowledged | Shipped | High-assurance payments, auditable IoT, finality. |
+| **Turbo** | **Go channels** | Volatile, lost on restart | **Planned** | Intranode logic that does not need to survive a crash. |
+
+The trade is durability, not a number. What a hop costs depends on the machine,
+the disk and the scenario, so it is measured rather than quoted: the
+[roaming tutorial](../tutorials/roaming_enrichment.md) publishes a round trip
+observed on a stated machine, with what it does and does not mean.
 
 > [!WARNING]
 > **Turbo Wires (Planned)**: Turbo Wires offer sub-millisecond performance by bypassing the NATS bus for local intra-rack flows. This strategy is currently in technical design and targeted for the **future milestone**.
@@ -134,7 +138,7 @@ To achieve the **[Sovereign Continuity](deployment.md#sovereign-continuity)** ob
 When a Rack starts or reloads a Scenario, it does not immediately activate the gear logic. Instead, it enters a **Convergence Phase**:
 
 1.  **Sync Probes**: The Rack emits `FlagSyncProbe` messages (internal NATS control messages) across every defined Wire in the topology.
-2.  **Propagation Loop**: These probes circulate through the NATS mesh every 500ms.
+2.  **Propagation Loop**: These probes are re-emitted on `rack.handshake_interval`, which defaults to `500ms`, to cover JetStream propagation lag.
 3.  **Finality Check**: The Rack waits until every path confirms it is "hot" and reachable across the distributed nodes.
 4.  **Gear Activation**: Only after 100% convergence is confirmed are the business and protocol gears (e.g., ISO8583/Wasm) allowed to start processing real-world traffic.
 

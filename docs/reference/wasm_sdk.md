@@ -1,5 +1,5 @@
 ---
-slug: /reference/wasm-sdk
+slug: /reference/development/wasm-sdk
 title: Wasm SDK contract
 ---
 
@@ -26,7 +26,7 @@ WebAssembly restricts execution to an isolated linear memory sandbox. To pass da
 
 Your Wasm module **must** export the following three functions:
 
-#### 1. `alloc`
+#### `alloc`
 ```text
 alloc(len: i32) -> i32
 ```
@@ -34,7 +34,7 @@ Called by the host to allocate memory inside the guest's linear memory.
 - **`len`**: The number of bytes to allocate.
 - **Returns**: An `i32` pointer to the allocated memory block.
 
-#### 2. `free`
+#### `free`
 ```text
 free(ptr: i32, len: i32)
 ```
@@ -42,7 +42,7 @@ Called by the host to free memory previously allocated by the guest.
 - **`ptr`**: The starting pointer of the memory block.
 - **`len`**: The length of the memory block in bytes.
 
-#### 3. `process`
+#### `process`
 ```text
 process(ptr: i32, len: i32) -> i64
 ```
@@ -59,7 +59,7 @@ If you wish to drop a message, return `0`.
 
 To interact with the host system (e.g., logging or state access), the host exposes a set of functions under the `env` namespace. You must import these explicitly in your language.
 
-#### `env.log`
+### `env.log`
 ```text
 env.log(level: i32, ptr: i32, len: i32)
 ```
@@ -68,7 +68,7 @@ Emits a structured log message to the Rack's central telemetry stream.
 - **`ptr`**: Pointer to the UTF-8 encoded log message.
 - **`len`**: Length of the log message.
 
-#### `env.emit` [Roadmap / Future]
+### `env.emit` [Roadmap / Future]
 ```text
 env.emit(ptr: i32, len: i32)
 ```

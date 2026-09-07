@@ -1,5 +1,5 @@
 ---
-slug: /reference/testing/robot-framework
+slug: /reference/development/robot-framework
 title: Robot Framework reference
 ---
 
@@ -166,15 +166,23 @@ The platform includes several pre-configured **Robot Framework** suites (availab
 
 ## Running tests
 
-Robot tests are executed using the standard `robot` CLI or via our Make wrapper:
+Suites run through a Make target, which builds the binaries first and refuses to
+run against stale ones:
 
 ```bash
-# Run all tests
-make test-acceptance
+# Every functional suite
+make test-robot
 
-# Run specific suite
-robot -d results/ tests/acceptance/payments.robot
+# One suite: there is a target per directory under test/robot/suites/
+make test-robot-iso
+make test-robot-roaming
+make test-robot-conductor
 ```
+
+`make help` lists them all. The load and chaos suites (`test-robot-perf`,
+`test-robot-roaming-stress`) have targets of their own and stay out of
+`test-robot`: they are sized for a quiet machine and become noise inside a batch
+run.
 
 ## CI/CD integration
 Because the execution outputs a standard `output.xml` result file in the `results/` directory, the **fluxrig** acceptance tests programmatically integrate with major CI/CD pipelines (Jenkins, GitLab CI, GitHub Actions) using standard Robot Framework plugins, generating interactive HTML reports and historical trends.

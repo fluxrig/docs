@@ -1,5 +1,5 @@
 ---
-slug: /reference/core/scenarios
+slug: /reference/platform/scenarios
 title: Orchestration scenarios
 ---
 
@@ -10,7 +10,7 @@ A **Scenario** is a declarative YAML file that defines the operational topology 
 ## Lifecycle
 
 1. **Author** a scenario YAML (locally or in version control).
-2. **Import** into the CAS store with a `name:tag` reference:
+2. **Import** into the [content-addressable store](spec_manager.md#cas) with a `name:tag` reference:
 
    ```bash
    fluxrig scenario import payment_flow.yaml --name payment-flow --tag v1.0.0
@@ -72,7 +72,7 @@ gears:
     deploy: edge-gateways        # References a group or specific rack.
     config:
       mode: "server"
-      port: 8080
+      bind: ":8583"
 
 wires:
   - from: iso-inbound.out
@@ -147,7 +147,7 @@ If a gear does not specify a `deploy` target, it is treated as a **Global Gear**
 The `wires` (or `pipes`) section defines how data flows between Gears.
 
 > [!NOTE]
-> **Endpoint grammar.** A wire endpoint is `gear.port` (the rack is taken from the gear's `deploy`) or `rack.gear.port` (an explicit rack / replica instance). Every segment is dot-free — **port names use underscores for roles** (`in_reply`, `out_scheme_a`), never dots — so `a.b.c` is always `rack.gear.port`. A wire naming an undefined rack/gear, or a port a gear does not declare, is rejected at import. See [the port model](../architecture/gear.md#wire-endpoint-naming).
+> **Endpoint grammar.** A wire endpoint is `gear.port` (the rack is taken from the gear's `deploy`) or `rack.gear.port` (an explicit rack / replica instance). Every segment is dot-free (**port names use underscores for roles**, as in `in_reply` and `out_scheme_a`, never dots), so `a.b.c` is always `rack.gear.port`. A wire naming an undefined rack/gear, or a port a gear does not declare, is rejected at import. See [the port model](../architecture/gear.md#wire-endpoint-naming).
 
 ### Transport modes
 
