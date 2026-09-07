@@ -8,9 +8,9 @@ title: Robot Framework Testing
 This tutorial guides you through using the **fluxrig** integration for **[Robot Framework](https://robotframework.org/)** to build a complete validation and performance rig for mission-critical signal processing.
 
 > [!NOTE]
-> **Universal Applicability**: While this tutorial uses **ISO 8583** as the high-fidelity technical example, the **`fluxrigLibrary`** is a universal verification harness. It can be used to orchestrate and validate any gear, protocol, or business logic orchestrated by the platform.
+> **Universal Applicability**: While this tutorial uses **ISO 8583** as its worked example, the **`fluxrigLibrary`** is a universal verification harness. It can be used to orchestrate and validate any gear, protocol, or business logic orchestrated by the platform.
 
-In the **fluxrig** ecosystem, testing is not an afterthoughtit is a core engineering discipline. A **Verification Suite** is an automated playbook that:
+In the **fluxrig** ecosystem, testing is not an afterthought: it is a core engineering discipline. A **Verification Suite** is an automated playbook that:
 
 1.  **Orchestrates**: Launches the Mixer, Racks, and virtual Gears in a clean, isolated environment.
 2.  **Exercises**: Drives real protocol traffic (like ISO 8583) through the setup.
@@ -140,7 +140,7 @@ Server Loopback Performance (Baseline 100 TPS)
 
 ---
 
-## Step 4: Analyzing high-fidelity results
+## Step 4: Reading the results
 
 The **`fluxrigLibrary`** automatically renders an interactive dashboard with real-time telemetry extraction.
 
@@ -163,7 +163,7 @@ To run this verification suite locally, navigate to the `test/robot` directory i
 $ robot suites/iso8583/server_validation.robot
 ```
 
-The system will automatically spawn the Mixer and Rack, execute the tests, and generate a final `log.html` and a specialized `suite_performance_summary.html` with your high-fidelity metrics.
+The system will automatically spawn the Mixer and Rack, execute the tests, and generate a final `log.html` and a specialized `suite_performance_summary.html` carrying the run's measurements.
 
 ---
 

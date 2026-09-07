@@ -1,5 +1,5 @@
 ---
-slug: /reference/operations/tech-stack
+slug: /reference/tech-stack
 title: Technical stack
 ---
 
@@ -8,9 +8,9 @@ title: Technical stack
 
 # Technical stack
 
-**fluxrig** is built on a modern, high-performance stack designed for reliability, extensibility, and long-term maintainability.
+Every dependency below is permissively licensed (Apache 2.0, MIT, BSD, ISC or MPL-2.0), which is a constraint this project holds rather than a preference: a copyleft dependency would reach the Apache 2.0 codebase.
 
-> **Stand on the Shoulders of Giants**: **fluxrig** is proudly built upon the open source ecosystem. We orchestrate best-in-class technologies to deliver a unified enterprise platform, giving full credit and gratitude to the communities maintaining these foundational projects.
+> **Stand on the Shoulders of Giants**: **fluxrig** is proudly built upon the open source ecosystem. The projects below do the work this one is built on, and the communities maintaining them deserve the credit for it.
 
 ## Mixer & Rack (OSS)
 *   **Language**: [Go (golang) 1.26+](https://go.dev/)
@@ -24,15 +24,17 @@ The Rack ships in two variants. Binaries are stripped (`-ldflags "-w -s"`); size
 
 | Variant | Build | Size | Contents |
 | :--- | :--- | :--- | :--- |
-| **Full** | `make build` | **~32 MB** | All built-in gears, including [`bento`](../reference/gears/bento.md) |
-| **Lean** | `make build-lite` (`-tags nobento`) | **~13 MB** | Everything except the `bento` gear |
+| **Full** | `make build` | **34 MB** | All built-in gears, including [`bento`](../reference/gears/bento.md) |
+| **Lean** | `make build-lite` (`-tags nobento`) | **20 MB** | Everything except the `bento` gear |
 
-The `bento` gear alone accounts for roughly **18 MB (~57%)** of the full Rack, because it links Bento's engine plus protobuf, cue, avro and gojq transitively. Deployments that do not use `type: bento` can drop all of it with the lean build.
+The `bento` gear accounts for **14 MB (~43%)** of the full Rack, because it links Bento's engine plus protobuf, cue, avro and gojq transitively. Deployments that do not use `type: bento` can drop all of it with the lean build.
+
+The tag also decides the licences in the binary. Bento reaches `hashicorp/golang-lru`, the only Mozilla Public License code in either binary; a lean build links 61 modules and every one of them is permissive.
 
 > [!IMPORTANT]
 > On a lean Rack, a scenario declaring `type: bento` fails at activation with `unknown gear type: bento`. This is deliberate and loud, rather than a silent no-op. Use `make build-all-variants` to produce both, and check which variant a binary is by the gear types it registers.
 
-For reference, the **Mixer** is ~77 MB, dominated by the statically linked DuckDB engine; it never links the gear factory, so the `nobento` tag does not apply to it.
+The **Mixer** is **105 MB**, dominated by the statically linked DuckDB engine, and **91 MB** with `-tags nobento`. It does link the gear factory, so the tag applies to it as well.
 
 *   **Orchestration**: [Temporal.io](https://temporal.io/) (Go SDK) - **[Roadmap]**, for durable long-running business workflows. Scenario orchestration today is NATS subject-push from the Mixer, with no Temporal dependency.
 *   **Wasm sandbox**: **[Roadmap]** Secure, polyglot execution of custom business logic in Rust, Go, or TypeScript. (The Wasm *filter* gear itself is already available, see the gear runtime below.)
@@ -66,7 +68,7 @@ For reference, the **Mixer** is ~77 MB, dominated by the statically linked DuckD
 ## Integration & ecosystem
 *   **Universal I/O engine**: [Bento](https://github.com/warpstreamlabs/bento) (mit)
     - **Fork**: We explicitly use the **WarpStream Labs** fork (mit) to ensure permissive licensing, avoiding the Bento/Redpanda (BSL) restrictions.
-    - **Role**: Provides 100+ native connectors (Kafka, s3, amqp, etc.) and the [bloblang](https://warpstreamlabs.github.io/bento/docs/guides/bloblang/about) mapping language.
+    - **Role**: Provides the [bloblang](https://warpstreamlabs.github.io/bento/docs/guides/bloblang/about) mapping language and connectors. The shipped binary registers the pure and local I/O sets (file, csv, socket, websocket, HTTP, subprocess); the ecosystem's institutional connectors (Kafka, S3, AMQP) need a custom build.
     - **Integration**: Wrapped as a **native Gear** (`pkg/gears/native/bento`).
 
 ## Data & analytics

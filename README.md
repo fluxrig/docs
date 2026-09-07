@@ -1,22 +1,32 @@
-# FluxRig Documentation Source
+# fluxrig documentation
 
-This repository contains the public documentation source for [fluxrig.org](https://fluxrig.org).
+The documentation published at [fluxrig.org](https://fluxrig.org), for
+[fluxrig](https://github.com/jaab-tech/fluxrig): a protocol orchestration engine
+that routes, transforms and observes data streams across heterogeneous
+environments.
 
-## Structure
+## Contents
 
-- `docs/`: Markdown source files for all public documentation.
-- `main` branch: Contains the documentation source code (Markdown).
-- `gh-pages` branch: Contains the generated static website (HTML/JS/CSS).
+| Path | |
+| :--- | :--- |
+| `docs/overview/` | What the engine is for, the design philosophy, the roadmap |
+| `docs/architecture/` | The Rack, the Mixer, the message, the wire |
+| `docs/tutorials/` | End-to-end walkthroughs, each one runnable |
+| `docs/use_cases/` | Payments, industrial, IoT |
+| `docs/reference/` | Gears, configuration, the CLI, the API, protocol specs |
+| `docs/development/` | Building, testing, contributing |
+| `docs/changelog.md` | Every release |
+| `VERSION` | The release this snapshot documents |
 
-## Contributing
+The pages are Markdown with front matter, built into the site with
+[Docusaurus](https://docusaurus.io).
 
-We welcome contributions to our documentation! To suggest changes:
+## Reporting a problem
 
-1. Fork this repository.
-2. Edit the files in the `docs/` directory.
-3. Submit a Pull Request.
-
-The live site is automatically updated after your changes are merged.
+Open an [issue](https://github.com/fluxrig/docs/issues) naming the page. For
+fluxrig itself, see
+[Governance & contributing](https://fluxrig.org/docs/development/contributing).
 
 ---
-© 2026 JAAB Tech
+
+Made with ❤️ in Uruguay 🇺🇾 by [JAAB Tech](https://jaab.tech). © 2026 JAAB Tech SAS.

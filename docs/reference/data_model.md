@@ -1,5 +1,5 @@
 ---
-slug: /reference/core/data-model
+slug: /reference/protocol/data-model
 title: Data model (fluxMsg)
 ---
 
@@ -77,7 +77,7 @@ type Hop struct {
 | **`Data`** | `map[string]any` | `data` | Business fields (ISO8583 tags, user-defined keys). |
 | **`Flags`** | `uint32` | `flags` | System-level signaling (e.g., `0x01` = Sync Probe). |
 | **`RawPayload`**| `[]byte` | `raw` | The original, bit-perfect wire bytes. |
-| **`Path`** | `[]*Hop` | `path` | Cryptographically signed hoptrail for auditability. |
+| **`Path`** | `[]*Hop` | `path` | The hops a message took, for auditability. Recorded, not signed. |
 | **`TsInit`** | `int64` | `ts` | Unix Nanoseconds of entry into the Rig. |
  
  ### System signaling (flags)
@@ -130,7 +130,7 @@ Internal keys follow the **Dot Notation** convention (`namespace.property`).
 
 ### Payments glossary (industry standard aliases)
 
-To ensure correlation logic (Coat Check, the Conductor `[Roadmap]`, and the Correlator `[Roadmap]`) functions uniformly regardless of the underlying dialect, we enforce exact standard aliases mapped within the Codec SDL.
+To ensure correlation logic (Coat Check, the Conductor, and the Correlator `[Roadmap]`) functions uniformly regardless of the underlying dialect, we enforce exact standard aliases mapped within the Codec SDL.
 
 | Alias Key | Type | Description |
 | :--- | :--- | :--- |
@@ -145,7 +145,7 @@ To ensure correlation logic (Coat Check, the Conductor `[Roadmap]`, and the Corr
 > **Metadata Integrity Guard**
 > To ensure cross-language interoperability and wire compatibility with CBOR (RFC 8949), all `Metadata` values MUST be UTF-8 compliant. 
 > - **Binary Data**: Must be hex-encoded and prefixed with `hex:` (e.g., `hex:4e62...`).
-> - **Validation**: The system will authoritativey reject messages containing non-UTF-8 metadata at the Bus boundary.
+> - **Validation**: The system will authoritatively reject messages containing non-UTF-8 metadata at the Bus boundary.
 
 ---
 

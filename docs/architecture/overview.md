@@ -6,10 +6,10 @@ sidebar_label: System Design
 
 # Architectural overview
 
-The **fluxrig** architecture is a modular, event-driven system designed to separate centralized orchestration from distributed execution. It functions as a high-performance connectivity layer that enables deterministic processing across heterogeneous distributed environments.
+The **fluxrig** architecture is a modular, event-driven system designed to separate centralized orchestration from distributed execution. It functions as a connectivity layer that enables deterministic processing across heterogeneous distributed environments.
 
 > **Core Principle**: **Wires are Persistent Signal Paths** (NATS JetStream).
-> Intra-Rack and Inter-Rack communication use the *same* high-fidelity protocol (`fluxMsg`), ensuring location transparency and uniform observability across the entire mesh.
+> Intra-Rack and Inter-Rack communication use the *same* protocol (`fluxMsg`), ensuring location transparency and uniform observability across the entire mesh.
 
 ## Design Philosophy
 
@@ -32,7 +32,7 @@ The platform is built on a modular architectural model that strictly separates c
 | **Spec** | Schema | Defines the structure of external payloads natively via **SDL**. |
 | **Registry** | Identity Ledger | The centralized source of truth for node identity, security secrets, and telemetry indexing. |
 | **fluxMsg** | Data Model | The universal binary data structure (CBOR) for all internal signals. |
-| **Warehouse**| Storage | *[Roadmap]* Partitioned cold storage for audit logs and historical telemetry (Parquet). |
+| **Warehouse**| Storage | The Mixer flushes telemetry to Parquet beside DuckDB. Partitioning it as cold storage for audit logs is *[Roadmap]*. |
 | **Studio** | Console UI | *[Roadmap]* The browser-based management console for visual topology building. |
 
 ---
@@ -41,7 +41,7 @@ The platform is built on a modular architectural model that strictly separates c
 
 A **Gear** is the primary logic unit. It functions as a pluggable, high-resolution signal processor that can be chained together via **Wires** to form complex, low-latency pipelines.
 
-*   **Execution Strategy**: Supports high-performance **Native Gears** (compiled Go) and agile, sandboxed **Wasm Gears** (pluggable polyglot logic).
+*   **Execution strategy**: **Native gears** are compiled into the binary; **Wasm gears** are sandboxed modules loaded at runtime, written in any language that targets WebAssembly.
 *   **The Port Model**: Communication is strictly governed by standardized entry and exit points (**Ports**) that enforce signal integrity.
 *   **Observability**: Every Gear is observable by default, with throughput and latency telemetry tapped directly from the execution path.
 
@@ -77,7 +77,7 @@ The Rack is designed for **Sovereign Continuity**. Unlike traditional thin clien
 The **Mixer** is the central nervous system and **Project Authority** for the rig. It governs identity, orchestrates topology updates, and aggregates telemetry.
 
 *   **The Operational Ledger (Registry)**: A hybrid source of truth that maintains node identity, security secrets, and a distributed telemetry index. It leverages **DuckDB** for active state and **Parquet partitions** for historical analysis.
-*   **Analytics**: A high-performance telemetry engine providing real-time operational visibility through the Ledger.
+*   **Analytics**: A telemetry engine providing real-time operational visibility through the Ledger.
 *   **Orchestrator**: Manages the deployment and hot-reloading of **Scenarios** across the fleet.
 
 ### The ledger architecture
@@ -89,7 +89,7 @@ The Registry functions as a **Unified Operational Ledger**. In the current relea
 ---
 
 ## The data plane (Rack)
-The **Rack** is the high-performance execution engine that lives locally or at the infrastructure boundary. It is designed for absolute autonomy and wire-speed performance.
+The **Rack** is the execution engine that lives locally or at the infrastructure boundary. It is designed for absolute autonomy and wire-speed performance.
 
 *   **Gear Runtime**: A lightweight, non-blocking execution environment.
 *   **Sovereign Autonomy**: Racks execute logic based on their local **Passports** (cryptographically-signed configuration snapshots), ensuring zero business downtime even if the Control Plane becomes unreachable.
@@ -99,14 +99,14 @@ The **Rack** is the high-performance execution engine that lives locally or at t
 
 ## The orchestration spectrum
 
-Unlike monolithic gateways, **fluxrig** operates across a high-fidelity **Orchestration Spectrum**. We separate the "Hot Path" (Mission-Critical Signal Processing) from the "Cold Path" (High-Assurance Business Orchestration).
+Unlike monolithic gateways, **fluxrig** operates across an **Orchestration Spectrum**. We separate the "Hot Path" (Mission-Critical Signal Processing) from the "Cold Path" (High-Assurance Business Orchestration).
 
 1.  **Passive Monitoring**: Non-intrusive shadow mirroring of traffic for risk-free validation.
 2.  **Mission-Critical Signal Processing**: The low-latency Rack pipeline for protocol normalization and localized logic.
 3.  **High-Assurance Business Orchestration**: The Mixer-hosted **Durable Orchestration** engine for long-running processes (e.g., settlements, disputes).
 
 > [!TIP]
-> For sector-specific implementations of this spectrum, see the **[Payment](../use_cases/payments.md)**, **[IoT](../use_cases/iot.md)**, and **[Industrial](../use_cases/industrial.md)** architectual spectrums.
+> For sector-specific implementations of this spectrum, see the **[Payment](../use_cases/payments.md)**, **[IoT](../use_cases/iot.md)**, and **[Industrial](../use_cases/industrial.md)** architectural spectrums.
 
 ---
 
@@ -114,7 +114,7 @@ Unlike monolithic gateways, **fluxrig** operates across a high-fidelity **Orches
 
 ### The hot path: mission-critical signal processing
 *   **Scope**: Real-time signal processing and authorization.
-*   **Performance**: Sub-millisecond overhead (< 500µs typical).
+*   **Performance**: Gear latency is measured per message and exported; the suites in this repository report it. No figure is quoted here, because an overhead number without the machine and the load that produced it is not one.
 *   **Engine**: **Native Rack pipeline**.
 
 ### The cold path: high-assurance business orchestration **[Roadmap]**

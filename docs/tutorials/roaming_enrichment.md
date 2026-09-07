@@ -636,5 +636,5 @@ class is doing work.
 
 ## Related
 
-- [Mobile network signals in payments](../use_cases/mobile_network_signals.md) — why this pattern exists, and what GSMA Open Gateway is.
-- [Building a multi-region payment switch](payment_switch_conductor.md) — the routing layer this composes with.
+- [Mobile network signals in payments](../use_cases/mobile_network_signals.md): why this pattern exists, and what GSMA Open Gateway is.
+- [Building a multi-region payment switch](payment_switch_conductor.md): the routing layer this composes with.

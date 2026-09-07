@@ -128,7 +128,7 @@ That makes for a first deployment with a small ask attached: put fluxrig in the 
 
 ## Related
 
-- [Enriching an authorization with a network signal](../tutorials/roaming_enrichment.md) — one of these built end to end.
-- [Building a multi-region payment switch](../tutorials/payment_switch_conductor.md) — the routing layer this composes with.
-- [Payment use cases](payments.md) — the broader set of operational patterns.
-- [GSMA Open Gateway](https://www.gsma.com/solutions-and-impact/gsma-open-gateway/) and [CAMARA](https://camaraproject.org/) — the initiative and the API project.
+- [Enriching an authorization with a network signal](../tutorials/roaming_enrichment.md): one of these built end to end.
+- [Building a multi-region payment switch](../tutorials/payment_switch_conductor.md): the routing layer this composes with.
+- [Payment use cases](payments.md): the broader set of operational patterns.
+- [GSMA Open Gateway](https://www.gsma.com/solutions-and-impact/gsma-open-gateway/) and [CAMARA](https://camaraproject.org/): the initiative and the API project.

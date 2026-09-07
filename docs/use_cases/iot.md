@@ -5,7 +5,7 @@ title: Internet of Things (IoT)
 
 # Internet of Things (IoT)
 
-**fluxrig** is a high-performance distributed runtime designed to solve the critical challenges of asynchronous data acquisition across unreliable networks. It functions as an **IoT Edge Runtime**, enabling engineers to multiplex data from LoRaWAN, Zigbee, BLE, and CAN bus into a unified, cloud-native stream.
+**fluxrig** is a distributed runtime designed to solve the critical challenges of asynchronous data acquisition across unreliable networks. It functions as an **IoT Edge Runtime**, multiplexing what reaches it into a unified, cloud-native stream. Radio fleets on LoRaWAN, Zigbee, BLE or CAN bus arrive through the network server or concentrator that already terminates them, over TCP, HTTP or WebSocket; fluxrig sits behind that link rather than speaking the radio itself.
 
 By shifting complexity to the **Distributed Node**, **fluxrig** allows organizations to reduce recurring carrier costs, maintain data integrity during backhaul outages, and retain full ownership of their telematic logic.
 
@@ -22,13 +22,13 @@ Ideal for disconnected environments (e.g., Cold Chain, AgTech), where the **Rack
 *   **Edge Data Filtering**: Analyzing data locally at the source. By only transmitting "Significant Events" (e.g., Temperature Variance > 0.5C) and discarding redundant heartbeats, deployments can substantially cut recurring carrier costs.
 
 ### The transparent asset proxy
-A high-performance deployment model for individual telematic units or industrial vehicles.
+A deployment model for individual telematic units or industrial vehicles.
 
-*   **Sovereign Telemetry**: Use the **[Bento Gear](../reference/gears/bento.md)** to bridge proprietary CAN bus or Modbus registers directly to semantic `fluxMsg` events with minimal overhead.
+*   **Sovereign Telemetry**: Use the **[Bento Gear](../reference/gears/bento.md)** to map what the gateway publishes over TCP, HTTP or WebSocket into semantic `fluxMsg` events. A CAN or Modbus segment reaches it through the concentrator that already terminates it.
 *   **Zero Trust Identity**: Every asset operates with independent mTLS certificates, ensuring that a compromised peripheral cannot impact the wider fleet.
 
 ### The LPWAN consolidation hub
-Manage high-density sensor arrays (Zigbee, LoRaWAN) using a multiplexing model for smart city environments.
+Multiplex a dense sensor estate, whatever radio it runs on, into one stream: the network server terminates the radio and a Rack takes it from there.
 
 *   **Telemetry Aggregation**: The hub collects data from thousands of low-power leaf nodes, flattens the telemetry into a unified schema, and flushes it to the Management Mixer via a secure mTLS tunnel.
 
@@ -50,10 +50,11 @@ Manage high-density sensor arrays (Zigbee, LoRaWAN) using a multiplexing model f
 
 **fluxrig** is a platform for institutional builders provided under the **Apache 2.0** license.
 
-Most IoT platforms enforce a "per-device" billing model that creates a "Success Tax" as your fleet scales. **fluxrig** offers:
+The licence does not change with the size of a deployment, and the normalization
+logic is defined locally rather than in a provider's console:
 
-*   **Royalty-Free Scaling**: Deploy across 10 or 10,000 nodes without increasing platform licensing overhead.
-*   **SaaS Lock-in Hedge**: Maintain a sovereign data layer. By defining your normalization logic locally, you can pivot between cloud providers without rewriting your field infrastructure.
+*   **The same terms at any scale**: ten nodes or ten thousand are the same licence.
+*   **A sovereign data layer**: the logic that normalizes your field data lives in your scenarios, so moving between cloud providers does not mean rewriting your field infrastructure.
 
 > [!TIP]
 > **Verification Strategy**: For large-scale fleet deployments, use **Scenario-Driven Simulation** to verify that your Filtering Logic maintains data integrity across simulated network partitions.
@@ -64,6 +65,6 @@ Most IoT platforms enforce a "per-device" billing model that creates a "Success 
 
 | Gear | Function | Status |
 | :--- | :--- | :--- |
-| **[Bento](../reference/gears/bento.md)** | Universal Protocol Bridge (MQTT, CAN, etc.) | **Stable** |
+| **[Bento](../reference/gears/bento.md)** | Universal Protocol Bridge | **Stable** (MQTT and CAN need a custom build; see the gear reference) |
 | **[io_lorawan](../reference/gears/io_lorawan.md)** | Native LoRaWAN LNS Integration | **Planned** |
-| **[Wasm Logic](../reference/gears/wasm_logic.md)** | Custom Parsing & Edge Filtering | **Planned** |
+| **[Wasm Logic](../reference/gears/wasm_logic.md)** | Custom Parsing & Edge Filtering | **Stable** |

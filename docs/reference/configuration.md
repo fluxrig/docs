@@ -1,5 +1,5 @@
 ---
-slug: /reference/core/configuration
+slug: /reference/platform/configuration
 title: Platform configuration
 ---
 
@@ -70,7 +70,7 @@ Foundational identity and path settings.
 | `state_file` | `string` | `"rack.flux"` | **Signed State Bundle** (CBOR). Persists Identity, Config, and Secrets. |
 
 #### `[Rack]`
-Rack-specific agent settings.
+Rack-specific settings.
 
 | Field | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
@@ -80,6 +80,11 @@ Rack-specific agent settings.
 | `max_payload_size`| `int` | `2097152` | **Max Payload Size (Bytes)**. Default: 2MB. |
 | `enrollment_timeout` | `string` | `"15s"` | Timeout for enrollment handshake. |
 | `heartbeat_interval` | `string` | `"30s"` | Frequency of Registry heartbeats. |
+| `enrollment_interval` | `string` | `"2s"` | Wait between enrollment attempts while a Rack is not yet adopted. |
+| `handshake_interval` | `string` | `"500ms"` | Re-emission of the connectivity probes sent before gears are activated. |
+| `convergence_timeout` | `string` | `"5s"` | How long a Rack waits for every wire to confirm reachable before giving up on the convergence phase. |
+| `drain_timeout` | `string` | `"35s"` | How long in-flight messages are given to finish on shutdown before gears are stopped. |
+| `cleanup_timeout` | `string` | `"2s"` | Grace given to release resources after draining. |
 
 #### `[Store]`
 Data storage settings.
@@ -99,6 +104,21 @@ Configuration for the underlying transport bus.
 | `connect_timeout` | `string` | `"10s"` | Initial connection timeout. |
 | `reconnect_wait` | `string` | `"1s"` | Wait time between reconnect attempts. |
 | `convergence_delay` | `string` | `"100ms"` | Safety delay for consumer convergence. |
+| `operation_timeout` | `string` | `"5s"` | Deadline for a single bus operation. |
+| `subscription_retry_wait` | `string` | `"200ms"` | Wait between attempts to establish a subscription. |
+| `subscription_retry_attempts` | `int` | `5` | Attempts before a subscription is reported failed. |
+| `inactive_threshold` | `string` | `"30s"` | Silence after which a consumer is treated as inactive. |
+| `root_ca_file` | `string` | `""` | CA bundle verifying the Mixer's bus certificate. Also settable as `rack.bus.root_ca_file`. |
+| `insecure_skip_verify` | `bool` | `false` | Skip verification of the bus certificate. Development only. Also settable as `rack.bus.insecure_skip_verify`. |
+
+**Telemetry settings**
+
+| Field | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `telemetry.service_name` | `string` | `"flux.rack"` | Service name reported on every span, metric and log. |
+| `telemetry.base_subject` | `string` | `"flux.telemetry"` | Bus subject prefix telemetry batches are published on. |
+| `telemetry.batch_interval` | `string` | `"5s"` | How often a batch is flushed to the Mixer. |
+| `telemetry.max_batch_size` | `int` | `512` | Records per batch before it is flushed early. |
 
 #### Example
 
@@ -150,7 +170,7 @@ General Mixer settings.
 #### Registry-First Identity Model
 
 > [!NOTE]
-> **Important Change (future releases)**: The static `machine_id` configuration field has been completely removed from both Rack and Mixer configurations. **fluxrig** now enforces a **Registry-First Enrollment Model**. 
+> **Changed**: the static `machine_id` configuration field is gone from both Rack and Mixer configurations, and is no longer read. **fluxrig** now enforces a **Registry-First Enrollment Model**. 
 > 
 > *   **Racks**: Dynamically receive a 128-bit `uuid.UUID` Identity during the Enrollment Handshake, which is cryptographically signed and stored in the local `state.flux` passport.
 > *   **Mixers**: Automatically generate a persistent cluster identity (UUID v7) on their first boot, which is maintained in the internal Unified Registry (`registry`).
@@ -162,6 +182,7 @@ Control how new Racks are admitted to the rig.
 | :--- | :--- | :--- | :--- |
 | `auto_adopt` | `bool` | `false` | If `true`, any new Rack connecting will be immediately set to `active`. Use cautiously in production. |
 | `push_delay` | `string` | `"1s"` | Delay before pushing the initial scenario to a newly adopted Rack. |
+| `bootstrap_secret` | `string` | `"fluxrig"` | Shared secret for zero-config enrollment and identity adoption. It ships with a known value, so a deployment that does not set it is running the documented one. |
 
 #### `[Ingest]` (Mixer)
 Control telemetry ingestion buffering and flushing.
@@ -177,6 +198,15 @@ Mixer REST API settings.
 | Field | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
 | `port` | `int` | `8090` | **Server Port** for the HTTP/gRPC API listener. |
+| `read_header_timeout` | `string` | `"3s"` | Deadline for reading request headers, which bounds a slow-header client. |
+
+#### `[Wasm]` (Mixer)
+Where signed Wasm gears and the keys that verify them are kept.
+
+| Field | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `catalog_dir` | `string` | `"./data/wasm"` | Directory holding imported Wasm modules. |
+| `trusted_keys_dir` | `string` | `"./data/wasm/keys"` | Public keys a module's signature is checked against. |
 
 #### `[Store]` (Mixer)
 Data storage settings (Analytics/Registry).
@@ -199,6 +229,11 @@ Embedded NATS Server (JetStream) settings.
 | `business_stream_max_age` | `string` | `"720h"` | Data retention time for business logic streams. |
 | `telemetry_stream_max_age` | `string` | `"24h"` | Data retention time for telemetry streams. |
 | `durable` | `bool` | `false` | Enable disk-durable JetStream persistence. |
+
+> [!NOTE]
+> The Mixer starts this server itself on every boot. There is no setting that
+> points it at an existing NATS deployment, so these fields move the bus, they
+> do not replace it.
 
 #### Example (Mixer)
 
@@ -258,6 +293,7 @@ Settings for the Embedded tier (DuckDB + Parquet).
 | :--- | :--- | :--- | :--- |
 | `data_dir` | `string` | `"./data/telemetry"` | Directory for telemetry storage. |
 | `flush_interval` | `string` | `"5s"` | Interval to flush data to disk. |
+| `retention_days` | `int` | `30` | Days of telemetry kept in DuckDB before it is aged out. |
 
 #### `[Observability.embedded.storage]`
 Storage format and organization.
@@ -503,27 +539,17 @@ GET /api/v1/telemetry/logs
 curl "http://mixer:8090/api/v1/telemetry/logs?level=error&since=2025-12-21T00:00:00Z&limit=50"
 ```
 
-### Traces API
+### Traces API `[Roadmap]`
 
-```
-GET /api/v1/telemetry/traces
-GET /api/v1/telemetry/traces/{trace_id}
-```
-
-**Query Parameters**:
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `flux_id` | `UUID` | Filter by flux_id. |
-| `since` | `RFC3339` | Start time. |
-| `min_duration_ms` | `int` | Minimum duration filter. |
-| `status` | `string` | `ok` or `error`. |
+Spans are collected and written to DuckDB and Parquet, and are queryable there
+today. The Mixer does not serve them over the API: `GET /api/v1/telemetry/{type}`
+answers `logs` and `metrics` and nothing else. Until it does, read them from the
+store, which the [telemetry reference](telemetry_analytics.md) shows how to do.
 
 ### Metrics API
 
 ```
 GET /api/v1/telemetry/metrics
-GET /api/v1/telemetry/metrics/{metric_name}
 ```
 
 **Query Parameters**:

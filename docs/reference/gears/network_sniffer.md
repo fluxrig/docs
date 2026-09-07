@@ -82,7 +82,7 @@ graph LR
 ## Description
 
 1.  **Ingress (`receive`)**:
-    *   The gear binds to the specified network interface using a high-performance capture mechanism (e.g., AF_PACKET on Linux or pcap).
+    *   The gear binds to the specified network interface using a capture mechanism (e.g., AF_PACKET on Linux or pcap).
     *   It applies the `bpf_filter` directly at the kernel level for maximum efficiency.
     *   It reassembles TCP streams from the captured packets to reconstruct the original application payload (handling out-of-order packets and retransmissions).
     *   Once a complete framing boundary is identified (configurable), it encapsulates the bytes into a `fluxMsg`.

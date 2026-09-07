@@ -1,5 +1,5 @@
 ---
-slug: /reference/signals/ports
+slug: /reference/protocol/ports
 title: Ports and nomenclature
 ---
 
@@ -10,7 +10,7 @@ title: Ports and nomenclature
 
 This document serves as the authoritative reference for network port assignments and naming conventions within the **fluxrig** project.
 
-## 1. Network Port Registry
+## Network port registry
 
 To prevent conflicts and ensure consistent test automation, the following port namespaces are reserved:
 
@@ -31,7 +31,7 @@ By default, fluxrig components communicate using the following standard ports:
 
 ---
 
-## 2. Nomenclature Standards
+## Nomenclature standards
 
 ### Project Branding
 *   **Formal Name**: `fluxrig` (Always lowercase in text, headings, and filenames).
@@ -47,7 +47,7 @@ We use the abbreviated `flux.` prefix for internal system primitives to maintain
 
 ---
 
-## 3. Environment Variable Standards
+## Environment variable standards
 
 All configuration overrides must use the `FLUXRIG_` prefix:
 

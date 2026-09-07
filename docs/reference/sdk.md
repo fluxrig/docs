@@ -1,11 +1,11 @@
 ---
-slug: /reference/core/sdk
+slug: /reference/development/go-sdk
 title: Native Go SDK contract
 ---
 
 # Native Go SDK contract
 
-The **fluxrig Native Go SDK** is the authoritative framework for building high-performance, deterministic signal processing modules (Gears). It provides the primitives required to interact with the high-fidelity `fluxMsg` data stream and the sovereign control plane.
+The **fluxrig Native Go SDK** is the authoritative framework for building deterministic signal processing modules (Gears). It provides the primitives required to interact with the `fluxMsg` data stream and the sovereign control plane.
 
 ## The Gear interface
 

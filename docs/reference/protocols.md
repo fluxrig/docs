@@ -1,5 +1,5 @@
 ---
-slug: /reference/core/protocols
+slug: /reference/protocol/wire
 title: Wire protocol (snake)
 ---
 

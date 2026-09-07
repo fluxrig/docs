@@ -6,12 +6,21 @@ hide_title: true
 
 # fluxrig
 
-**fluxrig** is a high-performance connectivity and protocol orchestration platform for distributed mission-critical infrastructure.
+**fluxrig** is a connectivity and protocol orchestration platform for distributed mission-critical infrastructure.
 
-It provides a unified control plane to route, transform, and monitor data streams across heterogeneous environments (from industrial IoT sensors to global payment networks). **fluxrig** transforms complex, siloed technical debt into a standardized, configuration-driven data flow.
+It provides a unified control plane to route, transform, and monitor data streams
+across heterogeneous environments, from industrial IoT sensors to global payment
+networks. The routing and transformation logic is declarative configuration,
+which holds as much for a flow being designed now as for one that has been in
+production for a decade.
+
+A **Rack** is an edge node running a **scenario**: a YAML description of
+processing steps and how they are wired. The **Mixer** enrolls Racks, deploys
+scenarios to them, and collects their telemetry. A Rack keeps processing while
+the Mixer is unreachable.
 
 > [!TIP]
-> Looking for a quick start? Check out the **[5-Minute Quickstart](./tutorials/quickstart.md)**! You can also read the **[Architecture Overview](./architecture/overview.md)** or explore our **[Industry Use Cases](./use_cases/index.md)**.
+> Start with the **[5-Minute Quickstart](./tutorials/quickstart.md)**, or read the **[Architecture Overview](./architecture/overview.md)** and the **[use cases](./use_cases/index.md)**.
 
 ---
 
@@ -19,8 +28,8 @@ It provides a unified control plane to route, transform, and monitor data stream
 
 **fluxrig** is designed for environments where data integrity and edge autonomy are non-negotiable.
 
-1. **Edge-to-Cloud Orchestration**: Manage thousands of distributed nodes as a single cohesive system.
-2. **Protocol Agnostic**: Native support for ISO8583, JSON, Protobuf, and legacy binary protocols.
+1. **One control plane for many edge nodes**: Racks enroll themselves, receive scenarios, and report telemetry to a single Mixer.
+2. **Protocol Agnostic**: A native ISO 8583 codec whose dialects are described by a spec rather than by code, generic TCP framing for binary protocols, and JSON and the rest through Bento mappings.
 3. **Configuration over Code**: Deploy complex routing and transformation logic via declarative YAML: no custom coding required for standard integrations.
 4. **Sovereign Autonomy**: Edge nodes operate independently, ensuring business continuity even during backhaul outages.
 
@@ -28,7 +37,7 @@ It provides a unified control plane to route, transform, and monitor data stream
 
 We borrow our architectural nomenclature from professional audio engineering to describe complex data flows with both precision and scale:
 
-*   **The Gear**: A modular unit of logic (e.g., an ISO8583 codec or a Modbus adapter).
+*   **The Gear**: A modular unit of logic (an ISO 8583 codec, a Bloblang mapping, a Wasm module of your own).
 *   **The Rack**: An edge node that hosts and executes multiple Gears (like a stage rack).
 *   **The Mixer**: The central Front of House (FOH) control plane that manages the fleet and aggregates telemetry.
 
@@ -41,14 +50,14 @@ We borrow our architectural nomenclature from professional audio engineering to 
 ```mermaid
 flowchart LR
     subgraph Southbound ["The Edge (Southbound)"]
-        Pinpad[Legacy Device]
-        PLC[Industrial PLC]
+        Terminal[POS terminal]
+        Device[Field device or gateway]
         subgraph Rack_A [**fluxrig** Rack]
-            GearSerial[Protocol Gear]
-            GearIO[I/O Gear]
+            GearISO[ISO 8583 gear]
+            GearIO[I/O gear]
         end
-        Pinpad -->|RS232| GearSerial
-        PLC -->|Modbus| GearIO
+        Terminal -->|ISO 8583 over TCP| GearISO
+        Device -->|TCP, HTTP| GearIO
     end
     subgraph Cloud ["Control Plane (Northbound)"]
         Mixer[fluxrig Mixer]
@@ -80,7 +89,7 @@ flowchart LR
 ## Choose your journey
 
 ### For Operators & SREs
-**Maintain maximum uptime** and operational visibility. **fluxrig** provides the tools to orchestrate distributed racks, manage immutable snapshots, and analyze high-fidelity telemetry in real-time.
+**Maintain maximum uptime** and operational visibility. **fluxrig** provides the tools to orchestrate distributed racks, manage immutable snapshots, and analyze telemetry in real time.
 
 *   **[Deployment architecture & binaries →](./architecture/deployment.md)**
 *   **[Operations & CLI reference →](./reference/cli.md)**

@@ -9,15 +9,14 @@ slug: /architecture/observability
 <!-- See https://jaab.tech -->
 
 
-# Observability architecture
 
-The **fluxrig** observability strategy is built on a non-intrusive model: **Native Telemetry Tapping**. Telemetry is tapped directly from the execution path and diverted for monitoring, tracing, and auditing without impacting the performance or integrity of the primary data flow.
+The **fluxrig** observability strategy is built on a non-intrusive model: **Native Telemetry Tapping**. Telemetry is taken from the execution path itself, on the same code path the message travels, rather than by a process observing it from outside.
 
 ## The zero-agent advantage
 
-In contrast to running resource-heavy sidecars or agents alongside business logic, **fluxrig** embeds high-performance observability directly into its core binaries.
+There is no sidecar and no collector to install: instrumentation is compiled into the Rack and Mixer binaries.
 
-*   **Minimized Overhead**: By eliminating external agents, system resources (CPU/RAM) are reserved exclusively for data processing, critical for industrial IoT and secure gateway deployments.
+*   **No second process**: nothing else competes for CPU or memory on the node, and nothing else has to be deployed, upgraded or firewalled.
 *   **Unified Transport**: Telemetry, logs, and control signals are multiplexed over the existing secure tunnels, simplifying firewall complexity and reducing network overhead.
 *   **W3C TraceContext**: **fluxrig** natively implements the **W3C TraceContext** standard, allowing it to participate in distributed traces started by upstream load balancers or client applications.
 
@@ -40,7 +39,7 @@ By embedding the telemetry tap in the single Rack binary rather than running a s
 **fluxrig** achieves extreme visibility by generating three distinct telemetry types for every transaction, fully compliant with the **OpenTelemetry (OTel)** standard.
 
 1.  **Traces**: Distributed spans following a request across the entire system.
-2.  **Metrics**: High-fidelity performance histograms (latency, throughput, error rates).
+2.  **Metrics**: Latency and throughput as histograms rather than averages (latency, throughput, error rates).
 3.  **Logs**: Structured, context-rich events attached directly to the transaction trace span for surgical root-cause analysis.
 
 ### Multi-dimensional correlation
@@ -70,7 +69,7 @@ graph LR
     subgraph Bus ["Telemetry Bus"]
         direction TB
         NATS{{"NATS Telemetry Aggregation"}}
-        Store[("High-Performance Analytics Sink")]
+        Store[("Analytics sink")]
         NATS -->|OTel Export| Store
     end
 
