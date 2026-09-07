@@ -80,8 +80,8 @@ graph LR
         Framer_In["Deframer (bytes received)"] --> PORT_OUT((port out))
     end
     NET(("External Endpoint<br/>(one TCP socket, bidirectional,<br/>TLS termination [Roadmap])"))
-    Framer_Out -->|"gear ➜ socket (written bytes)"| NET
-    NET -->|"socket ➜ gear (received bytes)"| Framer_In
+    Framer_Out -->|"gear → socket (written bytes)"| NET
+    NET -->|"socket → gear (received bytes)"| Framer_In
     Pipeline_In["Pipeline<br/>(`fluxMsg`)"] ==>|"unidirectional wire"| PORT_IN
     PORT_OUT ==>|"unidirectional wire"| Pipeline_Out["Pipeline<br/>(`fluxMsg`)"]
 ```
@@ -155,12 +155,12 @@ To ensure robust error handling, this gear subscribes to the **Universal Control
 
 The `io_tcp` gear exports native OpenTelemetry metrics regarding the health of its connection pools.
 
-*   `fluxrig.port.connections_active` (Gauge): Tracks currently established sockets per gear.
-*   `fluxrig.port.bytes_in` (Counter): Total bytes ingested from the wire.
-*   `fluxrig.port.bytes_out` (Counter): Total bytes pushed to the wire.
-*   `fluxrig.gear.messages_in` (Counter): Total messages ingested from the wire.
-*   `fluxrig.gear.messages_out` (Counter): Total messages pushed to the wire.
-*   `fluxrig.gear.errors` (Counter): Logs the number of malformed frames or buffer overflows detected.
+*   `flux.port.connections_active` (Gauge): Tracks currently established sockets per gear.
+*   `flux.port.bytes_in` (Counter): Total bytes ingested from the wire.
+*   `flux.port.bytes_out` (Counter): Total bytes pushed to the wire.
+*   `flux.gear.messages_in` (Counter): Total messages ingested from the wire.
+*   `flux.gear.messages_out` (Counter): Total messages pushed to the wire.
+*   `flux.gear.errors` (Counter): Logs the number of malformed frames or buffer overflows detected.
 
 ### Resource limits
 

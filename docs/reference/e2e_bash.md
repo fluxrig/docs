@@ -1,5 +1,5 @@
 ---
-slug: /reference/testing/regression
+slug: /reference/development/regression
 title: E2E bash scripting
 ---
 
@@ -31,7 +31,7 @@ Tests are located in `test/e2e/` and organized by component:
 | `09_io_tcp` | Low-level TCP framing and connection lifecycle validation. |
 | `10_iso8583` | Specialized validation for ISO8583 binary protocol handling. |
 | `11_coatcheck` | State persistence and "Resumable" transaction logic. |
-| `12_specs` | SDL validation and CAS (Content-Addressable Store) integrity. |
+| `12_specs` | SDL validation and [content-addressable store](spec_manager.md#cas) integrity. |
 
 ## Running tests
 To execute the full regression suite:

@@ -8,7 +8,7 @@ title: Design philosophy
 
 # Design philosophy: The high-fidelity logic
 
-While **fluxrig** is a high-performance technical orchestration engine, its architecture is deeply rooted in the principles of professional audio engineering. We believe that managing distributed data flows is fundamentally identical to managing high-fidelity signals in both a controlled **Recording Studio** and a massive **Live Event Stage**.
+While **fluxrig** is a technical orchestration engine, its architecture is deeply rooted in the principles of professional audio engineering. We believe that managing distributed data flows is fundamentally identical to managing high-fidelity signals in both a controlled **Recording Studio** and a stadium-scale **Live Event Stage**.
 
 By adopting this nomenclature, we provide a consistent, intuitive mental model for complex distributed systems at any scale.
 

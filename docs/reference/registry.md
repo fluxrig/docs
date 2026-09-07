@@ -1,5 +1,5 @@
 ---
-slug: /reference/core/registry
+slug: /reference/platform/registry
 title: Identity & registry
 ---
 

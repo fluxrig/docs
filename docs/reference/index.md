@@ -3,36 +3,38 @@ slug: /reference
 title: Technical reference
 ---
 
+<!-- Copyright (c) 2026 JAAB Tech SAS, Uruguay All Rights Reserved -->
+<!-- See https://jaab.tech -->
+
 # Technical reference
 
-Welcome to the **fluxrig** Technical Reference. The documentation is organized into logical domains that follow the data lifecycle from ingestion to orchestration and final verification.
+Five sections, each with its own page listing what is in it. The split follows
+the question being asked, not the order things happen.
+
+| Section | Answers |
+| :--- | :--- |
+| **[Protocol & data](/docs/reference/protocol)** | What a message is on the wire, and what it means |
+| **[Platform & configuration](/docs/reference/platform)** | How a fleet is configured, and who is allowed into it |
+| **[Gears catalog](/docs/reference/gears)** | What each gear does and what it accepts |
+| **[Operations & analytics](/docs/reference/operations)** | Running the two processes, and reading what they report |
+| **[Development & QA](/docs/reference/development)** | Extending the platform, and proving it behaves |
+
+[Technical stack](./tech_stack.md) sits outside them: it is what fluxrig is built
+on, and the licence of each dependency.
+
+## Where to start
+
+**Evaluating.** [Data model](./data_model.md) for what travels, then
+[Orchestration scenarios](./scenario.md) for how a node is composed. The
+[Gears catalog](/docs/reference/gears) says what can be composed.
+
+**Integrating a protocol.** [ISO8583 SDL](./specs/iso8583_sdl.md) describes a
+dialect, and [Protocol reference](./specs/protocol_reference.md) is the document
+rendered from one, which is what a counterparty reads.
+
+**Running it.** [Operating fluxrig](./operations.md) covers both processes;
+[Platform configuration](./configuration.md) is every field and its default.
 
 > [!TIP]
-> **Architectural Inspiration**: For context on the "Studio & Stage" design philosophy that inspires the system architecture, see the **[Design Philosophy](../overview/philosophy.md)** page.
-
----
-
-## Protocol & Data
-*The core primitives*
- 
-This section covers the foundations of the system: the **[Data model (fluxMsg)](./data_model.md)** primitive, the **[Snake protocol](./protocols.md)** (transport layer), and the technical stack that grounds the engine.
- 
-## Platform & Configuration
-*Configurations & protocol definitions*
- 
-The technical blueprints of the system. Here you will find the **[ISO8583 SDL](./specs/iso8583_sdl.md)** protocol mappings, the **[Orchestration scenarios](./scenario.md)** (execution logic), and the **[Registry](./registry.md)** that manages the entity state.
- 
-## Gears Catalog
-*The Gear library*
- 
-A comprehensive catalog of every **[Gear](./gears/index.md)** module in the fluxrig ecosystem, grouped by their role: **I/O Modules** for connectivity, **Codec Modules** for translation, and **Logic Modules** for advanced orchestration.
- 
-## Operations & Analytics
-*Management & monitoring*
- 
-The administrative interface of the fluxrig fleet. Contains the **[Mixer API](./api.mdx)** reference, the **[CLI](./cli.md)** reference, and the **[Telemetry](./telemetry_analytics.md)** reference for real-time observability.
- 
-## Development & QA
-*Extension & testing*
- 
-Tools for extending the platform and ensuring data integrity. Includes high-performance tools for building custom extensions via the **[Go SDK](./sdk.md)** and verifying system behavior with the **[Robot Framework](./robot_framework.md)**.
+> For the "Studio & Stage" thinking behind the naming, see
+> [Design philosophy](../overview/philosophy.md).

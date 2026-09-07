@@ -20,23 +20,33 @@ This guide provides the architectural roadmap for navigating the **fluxrig** rep
 │   └── fluxrig-mixer/  # The Control Plane (Orchestration & API)
 │
 ├── pkg/                # Public Libraries ("The Kit")
-│   ├── gears/          # The Gear Ecosystem (Native & Wasm)
-│   ├── fluxMsg/        # Wire Language (CBOR) definitions
-│   ├── snake/          # Transport Layer (NATS JetStream)
-│   ├── idgen/          # UUID v7 (RFC 9562) time-ordered ID generation
-│   └── sdk/            # The Gear SDK (Go/Wasm)
+│   ├── sdk/            # The Gear contract: NativeGear, GearContext
+│   ├── gears/          # The gear factory and every built-in gear
+│   ├── fluxmsg/        # The FluxMsg primitive (CBOR, UUID v7 ids)
+│   ├── runtime/        # Data plane: gear lifecycle on a Rack
+│   ├── mixer/          # Control plane: app, REST API, controllers
+│   ├── manager/        # The content-addressable store for specs and scenarios
+│   ├── snake/          # The embedded NATS JetStream server
+│   ├── bus/            # The Bus interface over it, mockable in tests
+│   ├── pki/            # Ed25519 cluster key, passports, envelopes
+│   ├── store/          # DuckDB registry and telemetry persistence
+│   ├── telemetry/      # OpenTelemetry provider, batching, WAL
+│   ├── viz/            # Generated views: protocol reference, LikeC4
+│   ├── wasm/           # Wasm catalog and signature verification
+│   ├── config/         # koanf loaders and every default
+│   └── idgen/          # UUID v7 (RFC 9562) time-ordered ids
 │
-├── pkg/mixer/          # Control Plane implementation
-├── pkg/rack/           # Data Plane implementation
-├── pkg/telemetry/      # OpenTelemetry provider setup
-│
-├── configs/            # Production & Development Samples
-└── test/               # Integration & E2E (Robot Framework)
+├── examples/           # Working scenarios, specs and config samples
+└── test/               # E2E (shell) and integration (Robot Framework)
 ```
+
+`pkg/` holds more than this; `go doc ./pkg/...` is the full list. There is no
+`internal/` directory: every package here is importable, and the API surface is
+kept deliberate rather than enforced by the compiler.
 
 ### Core philosophy
 1.  **Clean Core**: The primary repository contains only the build artifacts and protocol libraries.
-2.  **Internal Boundary**: Code within `internal/` cannot be imported by external projects, enforcing a clean API surface in `pkg/`.
+2.  **Deliberate API surface**: everything under `pkg/` is importable, so what goes there is a decision rather than an accident.
 
 ---
 
@@ -72,20 +82,22 @@ The Mixer provides the transport layer locally by embedding NATS JetStream.
 
 1.  **Start Control Plane**:
     ```bash
-    ./bin/fluxrig-mixer -c configs/mixer.yaml
+    cp examples/configs/fluxrig-mixer.toml.example fluxrig-mixer.toml
+    ./bin/fluxrig-mixer -c fluxrig-mixer.toml
     ```
     *The Mixer initiates the local transport layer (NATS) and exposes the internal registry.*
 
 2.  **Start Data Plane (Rack)**:
     ```bash
-    ./bin/fluxrig rack start -c configs/rack.yaml
+    cp examples/configs/fluxrig.toml.example fluxrig.toml
+    ./bin/fluxrig rack -c fluxrig.toml
     ```
     *The Rack completes the **Snake Link** handshake and enters the operational state.*
 
 3.  **Manage Fleet**:
     ```bash
-    export FLUXRIG_API_URL="http://localhost:8090"
-    ./bin/fluxrig rack list
+    ./bin/fluxrig racks                    # what the Mixer has registered
+    ./bin/fluxrig admin racks approve <id>  # let a pending one in
     ```
 
 ---
@@ -123,3 +135,4 @@ When building binaries manually, note the following environment variable invaria
 
 *   **The Rack / CLI (`fluxrig`)**: Pure static Go. Must be compiled with **`CGO_ENABLED=0`** for Distroless compatibility.
 *   **The Mixer (`fluxrig-mixer`)**: Embedded databases. Must be compiled with **`CGO_ENABLED=1`** to link the DuckDB engine.
+*   **The regression suite**: needs the **`duckdb` CLI** on the PATH. Four suites read the Mixer's store with it to check what was actually persisted. `make regression` refuses to start without it rather than reporting a Rack that never registered.

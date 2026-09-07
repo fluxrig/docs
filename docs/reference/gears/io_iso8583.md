@@ -1,7 +1,7 @@
 ---
 slug: /reference/gears/io_iso8583
 title: ISO8583 I/O gear
-excerpt: The high-performance signal pre-amp for financial protocol capture.
+excerpt: The signal pre-amp for financial protocol capture.
 ---
 
 <!-- Copyright (c) 2026 JAAB Tech SAS, Uruguay All Rights Reserved -->
@@ -9,7 +9,7 @@ excerpt: The high-performance signal pre-amp for financial protocol capture.
 
 # ISO8583 I/O gear
 
-The `io_iso8583` gear functions as the **Signal Pre-amp** (Input Stage) for financial protocol orchestration. It is a specialized **Native Gear** (Go) responsible for high-performance TCP capture, framing, and signal integrity.
+The `io_iso8583` gear functions as the **Signal Pre-amp** (Input Stage) for financial protocol orchestration. It is a specialized **Native Gear** (Go) responsible for TCP capture, framing, and signal integrity.
 
 By leveraging the **[Moov ISO8583](https://github.com/moov-io/iso8583)** protocol library within our high-concurrency bus architecture, the gear provides an ultra-low-latency gateway between external payment endpoints (Acquirers, Issuers, or Hardware) and the **[Active Orchestration & Switching](../../use_cases/payments.md#active-orchestration-and-switching)**.
 
@@ -100,8 +100,8 @@ graph LR
     end
 
     %% One socket, two directions
-    NET == "socket ➜ gear (received bytes)" ==> RX
-    TX == "gear ➜ socket (written bytes)" ==> NET
+    NET == "socket → gear (received bytes)" ==> RX
+    TX == "gear → socket (written bytes)" ==> NET
 
     %% Two unidirectional wires
     Out_P -.->|"unidirectional wire: fluxMsg (CBOR)"| Codec

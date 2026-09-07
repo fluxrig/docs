@@ -3,3 +3,8 @@ node_modules/
 build/
 .docusaurus/
 *.log
+
+# Claude Code session data. Skills are project assets and are versioned: a skill
+# that only exists on one machine is not a shared procedure.
+.claude/*
+!.claude/skills/

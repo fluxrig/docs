@@ -11,7 +11,7 @@ title: Modbus I/O gear [Roadmap]
 > [!WARNING]
 > **[Roadmap]**: This gear is currently under development and not yet available.
 
-The `io_modbus` Gear will provide a high-performance, native Go implementation for polling industrial registers from PLCs and SCADA systems.
+The `io_modbus` Gear will provide a native Go implementation for polling industrial registers from PLCs and SCADA systems.
 
 ## Planned capabilities
 

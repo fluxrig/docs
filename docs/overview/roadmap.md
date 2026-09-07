@@ -32,7 +32,7 @@ This roadmap outlines the strategic direction for **fluxrig**. It defines the jo
 
 | Version | Status | Goal | Description |
 | :--- | :--- | :--- | :--- |
-| v0.3.x | Delivered | Universal I/O | Integration with the Bento ecosystem for 100+ connectors. |
+| v0.3.x | Delivered | Universal I/O | Bento wrapped as a gear: Bloblang mapping, with the pure and local I/O connector sets. |
 | v0.4.x | Delivered | Public Release & Native Gears | Open-source launch; ISO 8583 I/O and codec gears, Coat Check correlation, distributed state (NATS KV), and secure enrollment. |
 | v0.5.x | Delivered | Sovereign Identity | UUID v7 (RFC 9562) identity plane and telemetry hardening. |
 | v0.6.x | Delivered | Polyglot Logic | Wasm runtime (wazero) with signed, supply-chain-secure modules. |
@@ -41,7 +41,10 @@ This roadmap outlines the strategic direction for **fluxrig**. It defines the jo
 
 | Version | Status | Goal | Description |
 | :--- | :--- | :--- | :--- |
-| v0.7.x | Active | Payment Switching | Conductor gear: connection routing + reply correlation over the valet ticket store (memory/shared), gear manifests, and native ISO 8583 TLS/mTLS. |
+| v0.7.x | Delivered | Payment Switching | Conductor gear: connection routing + reply correlation over the valet ticket store, gear manifests, and native ISO 8583 TLS/mTLS. |
+| v0.8.x | Delivered | EMV Chip Data | BER-TLV composite parsing, with tags the spec does not declare carried through untouched. |
+| v0.9.x | Delivered | Enrichment & Correlation | Enrichment from outside the message under a hard deadline, and correlation keys that survive a bus hop. |
+| v0.10.x | Active | The Semantic Layer | A protocol spec states its rules and the codec enforces them: per-message field usage, conditions, value domains and cross-field checks, plus a protocol reference generated from the spec. |
 | Future | Planned | Differential Analysis | Correlator gear: parallel shadow mastering and reconciliation against the immutable archives. |
 | Future | Planned | Hardened Integrity | Forensic analytics (DuckLake), at-rest encryption for persistent stores, durable ticket store (`local_durable`), per-destination circuit breaker, and peer heartbeats. |
 

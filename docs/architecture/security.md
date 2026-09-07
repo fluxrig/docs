@@ -77,7 +77,7 @@ While the current release uses secure file-based keys, the roadmap includes nati
 | **Sovereign ID** | **Available** | Signed State Envelopes (`state.flux`). |
 | **Field Masking** | **Planned**   | Deterministic PII scrubbers (future). |
 | **Cloud KMS** | **Planned**   | AWS/Google KMS integration for Authority keys. |
-| **Wasm Execution** | **Planned**   | Sandboxed execution runtime (future). |
+| **Wasm Execution** | **Available** | Sandboxed execution runtime (wazero), shipped in v0.6.x. |
 | **Audit Logging** | **Available** | Local CBOR WAL + DuckDB Registry. |
 | **Binary Signing** | **Planned** | Supply chain trust via Sigstore/Cosign. |
 | **SBOM Generation** | **Planned** | Automated CycloneDX generation per release. |

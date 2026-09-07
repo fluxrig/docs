@@ -48,7 +48,7 @@ This tutorial composes the full stack across two regions, so it assumes the sing
 
 *   A running Mixer, deployed in the main region (east in this tutorial) and reachable from both regions (see the [quickstart](quickstart.md)).
 *   Two Racks enrolled and adopted: `rack-east`, `rack-west` (one per region, connected outbound to the Mixer over mTLS).
-*   An ISO 8583 spec file for your message format (see the [ISO 8583 SDL reference](../reference/specs/iso8583_sdl.md)). This tutorial uses `specs/switch_v87.yaml` for both decode and encode.
+*   An ISO 8583 spec file for your message format (see the [ISO 8583 SDL reference](../reference/specs/iso8583_sdl.md)). This tutorial uses `specs/switch_v87.yaml` for both decode and encode. To read what a spec says before wiring it, render its [protocol reference](../reference/specs/protocol_reference.md).
 *   Scheme connectivity from each region: one endpoint per scheme (host, port, TLS material). Placeholders are used below.
 
 *   The full Rack binary (`make build`), not the lean `-tags nobento` variant. This scenario authors its DE 39 declines with a [`bento`](../reference/gears/bento.md) gear on the `error` path, so a lean Rack rejects it at activation with `unknown gear type: bento`. See [Rack build variants](../reference/tech_stack.md#rack-build-variants).
@@ -107,7 +107,7 @@ gears:
       origin: "east"
       # Correlation engine (valet). One store per Conductor.
       valet:
-        store: "memory"          # memory | local_durable [Roadmap] | shared
+        store: "memory"          # memory | local_durable [Roadmap] | shared [Roadmap]
         default_ttl: "30s"       # open-ticket timeout (transaction deadline)
         retain_after_close: "5s" # replay window for a lost-response retransmission
       # The tuple that identifies one transaction (never a bare STAN, which wraps
@@ -657,7 +657,7 @@ Read together: under sustained multi-scheme load the switch never cross-wired a 
 
 ## Related
 
-- [Enriching an authorization with a network signal](roaming_enrichment.md) — the same switch position used to obtain a fact the message does not carry, under a deadline, with the Coat Check correlating the reply so the authorizer can be timed.
-- [Mobile network signals in payments](../use_cases/mobile_network_signals.md) — why an issuer would want that, and what the operator APIs offer.
+- [Enriching an authorization with a network signal](roaming_enrichment.md): the same switch position used to obtain a fact the message does not carry, under a deadline, with the Coat Check correlating the reply so the authorizer can be timed.
+- [Mobile network signals in payments](../use_cases/mobile_network_signals.md): why an issuer would want that, and what the operator APIs offer.
 
 The Conductor generalizes the existing Coat Check gear (its correlation/TTL machinery is already in production) with routing and reply-return. Field parking stays a Conductor overlay; tokenization (surrogate substitution) will be a separate gear. Follow the changelog for further refinements.

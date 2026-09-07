@@ -39,17 +39,17 @@ All internal platform communications follow two primary subject hierarchies to e
 
 ## Binary strategy
 
-To simplify operations and reduce the maintenance surface, **fluxrig** is distributed as two focused, high-performance binaries.
+To simplify operations and reduce the maintenance surface, **fluxrig** is distributed as two focused, binaries.
 
 ### `fluxrig` (The Sovereign Node)
 *   **Role**: The stateless execution edge. Contains the **Rack** runtime and the operational CLI.
 *   **Build**: Pure Go (Static). Zero external dependencies (no glibc requirements).
 *   **Target**: Edge gateways, industrial IoT devices, and secure CI/CD runners.
-*   **Footprint**: Minimal (~45MB binary), optimized for resource-constrained edge environments.
+*   **Footprint**: A 34 MB static binary (linux/amd64, this release). Nothing else is installed, which is the property that matters at the edge more than the size.
 
 ### `fluxrig-mixer` (The Orchestrator)
 *   **Role**: The centralized control plane. Contains the **Mixer**, the entity registry, and the high-resolution analytics hub.
-*   **Build**: Go with embedded C-extensions for performance (DuckDB).
+*   **Build**: Go with embedded C-extensions (DuckDB), which is why it is the larger of the two at 105 MB. It is not deployed to the edge.
 *   **Target**: Private data centers, cloud regions, or local management hubs.
 *   **Embedded Services**: NATS JetStream (Message Bus) and DuckDB (SQL Analytics).
 

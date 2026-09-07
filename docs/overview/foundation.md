@@ -8,15 +8,16 @@ title: Foundation components
 
 # Foundation components
 
-# Foundation components
 
-**fluxrig** is a high-performance connectivity platform designed to harmonize complex data flows across heterogeneous environments. Whether bridging air-gapped industrial sensors, routing high-capacity payment transactions, or managing distributed IoT fleets, the platform provides a unified, configuration-driven foundation for mission-critical operations.
+**fluxrig** moves protocol traffic between systems that do not share a format, a
+transport, or an owner. What each node does is described in a scenario rather
+than compiled into it, so a change to a flow is a configuration change.
 
 ## Core pillars
 
-1.  **Deterministic Data Plane**: **fluxrig** ensures high-integrity data processing for all workloads (from Modbus registers to ISO8583 financial messages). All data is serialized using **Deterministic CBOR (RFC 8949)**, providing a comprehensive audit trail and high-performance processing.
+1.  **Deterministic data plane**: every message is serialized as **Deterministic CBOR (RFC 8949)**, so the same message produces the same bytes on every node and an audit trail can be compared rather than trusted.
 2.  **Distributed Autonomy**: The local processing node (Rack) operates with full independence. It continues to process data, perform transformations, and maintain compliance even during network backhaul or connectivity failures.
-3.  **Unified Control Plane (UCP)**: Manage thousands of heterogeneous distributed nodes as a single, cohesive entity. The Mixer provides a centralized registry, policy enforcement, and real-time telemetry aggregation.
+3.  **Unified control plane**: one Mixer holds the registry of enrolled Racks, deploys scenarios to them, and aggregates their telemetry.
 4.  **Remote Fleet Management**: **[Planned]** Future releases will introduce native Over-the-Air (OTA) update capabilities for Racks and Gears, allowing for secure, remote lifecycle management of distributed infrastructure.
 
 ## Design philosophy
@@ -57,7 +58,7 @@ To maintain performance and compliance (like PCI-DSS), we avoid bloating message
 We distinguish sharply between **Business Data** (Transactions) and **Operational Data** (Metrics/Logs). This requires two distinct pipeline patterns.
 
 ### Pipeline A: Business Data pipeline (Gears & Wasm)
-*   **Goal**: Process high-performance documents (ISO8583, IoT sensors) and perform flexible data transformations.
+*   **Goal**: parse and transform protocol messages, from ISO 8583 financial traffic to sensor payloads.
 *   **The strategy**: An extensible architecture designed for both performance and custom plugins.
     *   **Native gears**: Optimized Go logic for latency-sensitive protocols like **ISO8583** and financial switching.
     *   **WebAssembly (Wasm)**: Sandboxed, polyglot plugins (Rust, C++, TypeScript), allowing for safe third-party extensions.

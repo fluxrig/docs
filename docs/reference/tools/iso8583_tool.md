@@ -1,11 +1,11 @@
 ---
-slug: /reference/testing/iso8583-tool
+slug: /reference/development/iso8583-tool
 title: ISO8583 utility
 ---
 
 # ISO8583 utility
 
-A high-performance unified tool for ISO8583 testing, combining a Load Generator and an Echo Server.
+A unified tool for ISO8583 testing, combining a Load Generator and an Echo Server.
 
 ## Modes
 

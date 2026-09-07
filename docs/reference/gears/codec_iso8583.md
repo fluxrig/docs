@@ -5,7 +5,7 @@ title: ISO8583 codec gear
 
 # ISO8583 codec gear
 
-The high-fidelity signal leveler for financial protocol normalization.
+The signal leveler for financial protocol normalization.
 
 <!-- Copyright (c) 2026 JAAB Tech SAS, Uruguay All Rights Reserved -->
 <!-- See https://jaab.tech -->
@@ -20,8 +20,8 @@ By leveraging the **[Moov ISO8583](https://github.com/moov-io/iso8583)** engine,
 | **Analogy** | **Signal Leveler** (Normalization) |
 | **Source Code** | [pkg/gears/native/iso8583/codec](https://github.com/jaab-tech/fluxrig/tree/main/pkg/gears/native/iso8583/codec) |
 | **Pairs With** | **[Signal Pre-amp](io_iso8583.md)** (Capture) |
-| **Always Emitted Metadata**| `codec.protocol`, `codec.spec_hash`, `iso8583.mti`, `[alias]` |
-| **Conditionally Emitted Metadata** | `iso8583.mti_resp` |
+| **Always Emitted Metadata**| `codec.protocol`, `codec.spec_hash`, `codec.spec_id`, `codec.spec_version`, `iso8583.mti`, `[alias]` |
+| **Conditionally Emitted Metadata** | `iso8583.mti_class` (when the MTI is at least two digits), `codec.violations` (when validation is on and a rule was broken) |
 | **Mandatory Consumed Metadata** | `[alias]` or `iso8583.field.N` |
 | **Signals Sent** | `conn.close` (Kill Switch) |
 
@@ -53,9 +53,10 @@ ISO 8583 encode/decode against an SDL spec: raw wire bytes &lt;-&gt; structured 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `direction` | enum: `auto`, `encode`, `decode` |  | `auto` | encode, decode, or auto (infer from the message). |
-| `on_error` | enum: `reject`, `drop`, `kill` |  | `reject` | on a decode/encode failure: reject (emit on the error path), drop (discard), or kill (fail the gear). |
+| `on_error` | enum: `reject`, `drop`, `kill` |  | `drop` | on a decode/encode failure, or on a message a rule rejects: reject (emit on the error path), drop (discard), or kill (fail the gear). |
 | `spec` | string |  | - | Legacy alias of spec_path. |
-| `spec_path` | string |  | - | Path or URN of the ISO 8583 SDL spec. |
+| `spec_path` | string |  | - | The ISO 8583 SDL spec: a path to a file, or a store reference as name:tag (e.g. acme-auth:v2.2.0) or a content hash. |
+| `validation` | enum: `off`, `warn`, `enforce` |  | `off` | what the spec's semantic rules do to traffic: off (they document), warn (violations are recorded and the message goes on), or enforce (a rejecting rule fails the message, which then follows on_error). |
 <!-- AUTOGEN:manifest:codec_iso8583 END -->
 
 ## Architectural signal path
@@ -99,7 +100,7 @@ The Gear utilizes a **[YAML SDL](../specs/iso8583_sdl.md)** to define dialect ru
 
 *   **Industry Standard Parsing**: Support for BCD, EBCDIC, ASCII, and raw Binary payloads.
 *   **Deep Bitmaps**: Automatic handling of Primary and Secondary bitmaps (Support for up to 128 fields). **Tertiary Bitmaps** (Field 129-192) are currently a roadmap item (future).
-*   **EMV & Composites**: High-fidelity normalization for **BER-TLV** (Field 55) and complex subfields (Field 48, 62, 127).
+*   **EMV & Composites**: Normalization for **BER-TLV** (Field 55) and complex subfields (Field 48, 62, 127).
 
 ---
 
@@ -107,15 +108,37 @@ The Gear utilizes a **[YAML SDL](../specs/iso8583_sdl.md)** to define dialect ru
 
 The full field list, with types and defaults, is in the **Manifest reference** table at the top of this page. This gear follows the **[Stack is the Spec](../tech_stack.md)** principle: we do not reinvent the protocol parser; we embed the standard **Moov** library.
 
-## Specification resolution (CAS)
+## Specification resolution
 
-The `spec_path` field supports two resolution strategies to allow for both local development and institutional-grade deployments:
+A spec reaches the gear from a file or from the [content-addressable store](../spec_manager.md#cas).
 
-1.  **Local Path**: If the value begins with `/` or `./`, the Gear reads the spec directly from the Rack's filesystem.
-2.  **Registry URN**: If the value follows the `name:tag` pattern (e.g., `payment-v1:stable`), the Mixer's **Registry** is consulted. The Mixer retrieves the corresponding YAML blob from the **Content-Addressable Storage (CAS)** and pushes it to the Rack.
+`spec_path` names either a file or a stored artefact, and the two are told apart
+by shape: a **path** has a directory separator or a `.yaml`/`.yml` extension and
+no colon; a **store reference** is `name:tag` (`payment-v1:stable`) or a bare
+content hash.
+
+Both exist for a reason. A spec under development is a file, and iterating on it
+should not require an import. A spec in a deployment is an artefact: the Mixer
+resolves the references a scenario names against its own store and sends them
+**with** the scenario, and the Rack files them before applying it. Two Racks given
+one scenario therefore compile the same bytes, which a path cannot promise. It
+resolves against whatever each Rack happens to have at that location.
+
+A spec that arrived from the store has no directory of its own, so its
+`wire.source` cannot name a relative file. Name a base with `moov:` or carry the
+wire layer in `wire.fields`.
+
+**Import.** `fluxrig spec import <file>` files a spec under the name and version
+it declares (`spec.name` and `spec.version`), the same values that appear in the
+document. Importing identical content again is idempotent. A document claiming a
+version that already names different content is refused: a version identifies one
+set of bytes, or it identifies nothing.
 
 > [!NOTE]
-> All specifications are tracked via **SHA256 hashes** (First 12 chars). When a spec is loaded, the Codec gear exports the `codec.spec_hash` metadata, ensuring absolute traceability between a transaction and the exact version of the logic used to parse it.
+> Every spec is tracked by the SHA256 of its content (first 12 characters). The
+> Codec gear stamps `codec.spec_hash` on each message it processes, in both
+> directions, so a transaction can be traced to the exact bytes that parsed it,
+> which is a stronger statement than the version it was filed under.
 
 ---
 
@@ -138,12 +161,12 @@ While the gear parses 0800 messages, it is the role of the downstream **[Logic G
 
 ### Resource monitoring (OTel)
 
-The `codec_iso8583` gear exports high-fidelity metrics for dashboarding and alerting:
+The `codec_iso8583` gear exports metrics for dashboarding and alerting:
 
-*   `fluxrig.gear.messages_in` (Counter): Total messages processed by the gear.
-*   `fluxrig.gear.processing_time_ms` (Histogram): Processing latency distribution in milliseconds.
-*   `fluxrig.codec.iso8583.fields_count` (Histogram): Average field density per message.
-*   `fluxrig.gear.errors` (Counter): Cumulative count of packing/unpacking failures.
+*   `flux.gear.messages_in` (Counter): Total messages processed by the gear.
+*   `flux.gear.processing_time_ms` (Histogram): Processing latency distribution in milliseconds.
+*   `flux.codec.iso8583.fields_count` (Histogram): Average field density per message.
+*   `flux.gear.errors` (Counter): Cumulative count of packing/unpacking failures.
 
 > [!TIP]
-> **See the [Signal Leveler Implementation Guide](../specs/iso8583_sdl.md)** for a deep dive into YAML Dialect definitions.
+> **See the [Signal Leveler Implementation Guide](../specs/iso8583_sdl.md)** for a deep dive into YAML Dialect definitions, and the **[protocol reference](../specs/protocol_reference.md)** for the document `fluxrig spec doc` renders from one.

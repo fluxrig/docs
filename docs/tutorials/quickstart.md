@@ -89,7 +89,6 @@ gears:
         input:
           generate:
             mapping: |
-              root.flux_id = uuid_v4()
               root.timestamp = now()
               root.status = "UP"
               root.metrics.cpu_pct = random_int(min:10, max:85)
@@ -117,8 +116,8 @@ wires:
 *   **`type: bento`**: We are defining declarative data-processing Gears without writing compiled Go code.
 *   **`generator` gear**: Uses `input.generate` to produce synthetic JSON payloads every 2 seconds. Its output is auto-wired through the `out` port.
 *   **`sink` gear**: Receives messages through the `in` port and prints them to the console via `output.stdout`.
-*   **`wires`**: The `generator.out → sink.in` wire routes messages through the fluxrig bus (NATS JetStream), giving you full telemetry visibility — gear-level metrics like `flux.gear.messages_in` and `flux.gear.messages_out` are automatically tracked.
-*   **`mapping`**: Uses Bloblang (Bento's mapping language) to inject mock metrics like a simulated CPU percentage (`cpu_pct`) and memory usage (`mem_mb`), alongside a `uuid_v4` and timestamp.
+*   **`wires`**: The `generator.out → sink.in` wire routes messages through the fluxrig bus (NATS JetStream), giving you full telemetry visibility: gear-level metrics like `flux.gear.messages_in` and `flux.gear.messages_out` are automatically tracked.
+*   **`mapping`**: Uses Bloblang (Bento's mapping language) to inject mock metrics like a simulated CPU percentage (`cpu_pct`) and memory usage (`mem_mb`), alongside a timestamp. The message's own identity is not set here: fluxrig assigns every message a time-ordered UUID v7 `flux_id`, and the bridge reads one from message *metadata* rather than from the payload, so a `flux_id` written into the body is an ordinary field with a confusing name.
 
 You should now see periodic logs in the Rack terminal reflecting the received data:
 ```text

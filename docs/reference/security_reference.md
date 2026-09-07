@@ -1,5 +1,5 @@
 ---
-slug: /reference/core/security
+slug: /reference/platform/security
 title: Security reference
 ---
 

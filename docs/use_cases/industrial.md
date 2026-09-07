@@ -5,9 +5,9 @@ title: Industrial use cases
 
 # Industrial use cases
 
-**fluxrig** is a high-performance distributed runtime engineered for the convergence of Operational Technology (OT) and institutional IT infrastructure. It functions as an **Industrial DataOps Runtime**, providing a memory-safe execution layer for protocol normalization, heterogeneous data aggregation, and deterministic logic at the factory edge.
+**fluxrig** is a distributed runtime engineered for the convergence of Operational Technology (OT) and institutional IT infrastructure. It functions as an **Industrial DataOps Runtime**, providing a memory-safe execution layer for protocol normalization, heterogeneous data aggregation, and deterministic logic at the factory edge.
 
-By composing specialized **Gears**, industrial engineers can transform raw PLC registers and mesh-network data into semantic, cloud-ready events without modifying mission-critical control hardware.
+By composing specialized **Gears**, industrial engineers can transform what the shop floor already publishes into semantic, cloud-ready events without modifying mission-critical control hardware. Reading PLC registers directly needs the Modbus and RS-485 gears, which are on the roadmap; today a Rack sits behind whatever already speaks TCP or HTTP.
 
 ## The Unified Namespace (UNS) strategy
 **fluxrig** is a native implementation of the **Unified Namespace** architectural pattern. By using the **Mixer** as the central source of truth for the entity registry and the secure mTLS transport, the platform enables a single, contextualized hierarchy for all industrial data, bridging the gap between the shop floor (OT) and the boardroom (IT).
@@ -19,7 +19,7 @@ By composing specialized **Gears**, industrial engineers can transform raw PLC r
 
 ## Operational patterns
 
-Unlike monolithic IIoT gateways, **fluxrig** provides a flexible spectrum of operational patterns for high-performance industrial automation.
+Unlike monolithic IIoT gateways, **fluxrig** provides a flexible spectrum of operational patterns for industrial automation.
 
 ### Passive data acquisition (SPAN)
 For legacy environments where touching the PLC cycle is restricted, **fluxrig** operates as a passive observer.
@@ -30,7 +30,7 @@ For legacy environments where touching the PLC cycle is restricted, **fluxrig** 
 ### Active normalization and control
 In this pattern, **fluxrig** acts as an inline gateway, actively polling OT data and applying real-time logic before transmission to the central ecosystem.
 
-*   **Protocol Aggregation**: Direct translation from bit-level binary registers (Modbus, Profinet) or mesh data (LoRaWAN, Zigbee) to semantic `fluxMsg` events via the **[Bento Gear](../reference/gears/bento.md)**.
+*   **Protocol Aggregation**: Translation of what the fieldbus gateway already publishes into semantic `fluxMsg` events via the **[Bento Gear](../reference/gears/bento.md)**. Reading Modbus or Profinet registers directly needs the `[Roadmap]` **[Modbus gear](../reference/gears/io_modbus.md)**; today a Rack sits behind whatever terminates them.
 *   **Autonomous Edge Filtering**: Executing high-frequency thresholding and filtering locally. Only relevant "Critical Events" (e.g., *Pressure Variance > 5%*) are transmitted, significantly reducing bandwidth and cloud ingestion costs.
 
 ---
@@ -68,7 +68,7 @@ Industrial environments require absolute isolation. **fluxrig** enforces a stric
 
 | Gear | Function | Status |
 | :--- | :--- | :--- |
-| **[Bento](../reference/gears/bento.md)** | Universal Protocol Bridge (Modbus, MQTT, SMTP) | **Stable** |
+| **[Bento](../reference/gears/bento.md)** | Universal Protocol Bridge | **Stable** (Modbus, MQTT and SMTP need a custom build; see the gear reference) |
 | **[io_modbus](../reference/gears/io_modbus.md)** | Native TCP/RTU High-Speed Poller | **Planned** |
 | **[network_sniffer](../reference/gears/network_sniffer.md)** | Passive OT Traffic Capture | **Planned** |
-| **[Wasm Logic](../reference/gears/wasm_logic.md)** | Custom Edge Filtering & Autonomy | **Planned** |
+| **[Wasm Logic](../reference/gears/wasm_logic.md)** | Custom Edge Filtering & Autonomy | **Stable** |

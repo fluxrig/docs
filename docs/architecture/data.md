@@ -8,11 +8,11 @@ title: Data Architecture
 
 # Data architecture
 
-The **fluxrig** data architecture is designed for extreme integrity and high-fidelity signal processing in mission-critical environments. Every signal in the rig is self-describing, bit-perfect, and audit-ready.
+The **fluxrig** data architecture is designed for integrity in mission-critical environments. Every signal in the rig is self-describing, bit-perfect, and audit-ready.
 
 ## The signal: `fluxMsg`
 
-At the center of the ecosystem is the **`fluxMsg`**, a high-performance, structured representation of a transactional signal. It acts as a high-fidelity envelope carrying the raw payload and its associated operational context.
+At the center of the ecosystem is the **`fluxMsg`**, a structured representation of a transactional signal. It acts as an envelope carrying the raw payload and its associated operational context.
 
 ### Deterministic binary serialization
 
@@ -48,7 +48,7 @@ To ensure data sovereignty and end-to-end auditability across thousands of distr
 Every signal entering the rig is assigned a **`flux_id`**, a **128-bit, time-ordered unique identifier (UUID v7)**.
 
 *   **Standard**: **RFC 9562 (UUID v7)**.
-*   **Property**: Chronologically sortable (millisecond precision), globally unique, and optimized for native indexing in high-performance storage engines.
+*   **Property**: Chronologically sortable (millisecond precision), globally unique, and optimized for native indexing in storage engines.
 *   **Role**: The primary key for telemetry joins, distributed traces, and audit archives.
 
 ### entity_id (Persistent component identity)
@@ -66,7 +66,7 @@ We strictly separate the **Tactical Structure** of a signal from its **Topologic
 ### fluxSpec (Logical schema)
 Defined via the **Spec Definition Language (SDL)**, these schemas define the structure of external protocols (e.g., "ISO8583 Dialects").
 
-*   **Immutability**: Specs are stored in a **Content-Addressable Store (CAS)** using **SHA-256** hashing. Any modification generates a new hash, preventing silent failures in the distributed data-plane.
+*   **Immutability**: Specs are stored in a **[Content-Addressable Store (CAS)](../reference/spec_manager.md#cas)** using **SHA-256** hashing. Any modification generates a new hash, preventing silent failures in the distributed data-plane.
 *   **Validation**: Every node in the fleet must re-verify the spec hash before executing logic on a new version.
 
 ### Scenarios (Topological blueprint)
@@ -78,7 +78,7 @@ The **Scenario** is the declarative blueprint of a pipeline. It defines the sign
 
 Every Rack functions as an independent, **Sovereign Data Vault**, ensuring that signal integrity is maintained even during total cloud connectivity failure.
 
-1.  **Immutable WAL**: Every signal passing through a Rack is recorded to a local, immutable **Write-Ahead Log (WAL)** using high-performance binary storage.
+1.  **Immutable WAL**: Every signal passing through a Rack is recorded to a local, immutable **Write-Ahead Log (WAL)** using binary storage.
 2.  **Non-Intrusive Signal Tap**: Observability telemetry (Metrics/Traces) is "tapped" from the main execution path. This data is uploaded asynchronously, ensuring that observability never introduces latency to the business hot-path.
 3.  **Data Residency Sovereignty**: Detailed payloads (e.g., raw financial messages) can be configured to remain exclusively in the local edge vault while only high-level metadata reaches the central Mixer. 
 

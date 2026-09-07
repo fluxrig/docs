@@ -5,7 +5,7 @@ title: Wasm logic gear
 
 # Wasm logic gear
 
-The **Wasm Logic Gear** is the primary extensibility point for the **fluxrig** data plane. It allows developers to inject high-performance, sandboxed business logic into the signal flow using any language that compiles to **WebAssembly (Wasm)**.
+The **Wasm Logic Gear** is the primary extensibility point for the **fluxrig** data plane. It allows developers to inject sandboxed business logic into the signal flow using any language that compiles to **WebAssembly (Wasm)**.
 
 > [!IMPORTANT]
 > **Technical Foundation**: This gear leverages the **[Wazero](https://wazero.io/)** runtime, the only zero-dependency, 100% Go WebAssembly implementation, to ensure architectural purity and extreme performance without requiring CGO.
@@ -56,7 +56,7 @@ Our implementation strictly adheres to the following industry standards to ensur
 
 *   **[W3C WebAssembly Core 2.0](https://www.w3.org/TR/wasm-core-2/)**: Ensures deterministic execution and binary portability.
 *   **[WASI (WebAssembly System Interface)](https://wasi.dev/)**: Provides a standardized, capability-based interface for system resources (limited to approved descriptors).
-*   **CBOR-Based ABI**: Uses **[RFC 8949 (CBOR)](https://www.rfc-editor.org/rfc/rfc8949.html)** for high-performance signal passing between the Go host and the Wasm guest, keeping the host/guest boundary off the critical path.
+*   **CBOR-Based ABI**: Uses **[RFC 8949 (CBOR)](https://www.rfc-editor.org/rfc/rfc8949.html)** for signal passing between the Go host and the Wasm guest, keeping the host/guest boundary off the critical path.
 
 ## Wasm Supply Chain Security
 
@@ -93,6 +93,9 @@ graph LR
     Code[Rust/Go Code] -.->|Compile to .wasm| CAS[(CAS Store)]
     CAS -.->|Hot Load| Wazero
 ```
+
+A module is addressed the same way a spec is: by a path, or by a URN into the
+[content-addressable store](../spec_manager.md#cas).
 
 ## Application Binary Interface (ABI)
 

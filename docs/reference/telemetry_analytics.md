@@ -58,13 +58,13 @@ GET /metrics
 *Port is dependent on the configured API port (default 8090 for Mixer).*
 
 ### Key metrics to monitor
-* `fluxrig.gear.messages_in`: Throughput capacity (entering gears).
-* `fluxrig.gear.messages_out`: Throughput capacity (leaving gears).
-* `fluxrig.gear.processing_time_ms`: Gear execution latency histogram.
-* `fluxrig.port.bytes_in`: Ingress data volume at the port level.
-* `fluxrig.port.bytes_out`: Egress data volume at the port level.
-* `fluxrig.nats.publish_latency_ms`: Message bus propagation health.
-* `fluxrig.bus.publish_errors`: System-level emission failures.
+* `flux.gear.messages_in`: Throughput capacity (entering gears).
+* `flux.gear.messages_out`: Throughput capacity (leaving gears).
+* `flux.gear.processing_time_ms`: Gear execution latency histogram.
+* `flux.port.bytes_in`: Ingress data volume at the port level.
+* `flux.port.bytes_out`: Egress data volume at the port level.
+* `flux.nats.publish_latency_ms`: Message bus propagation health.
+* `flux.bus.publish_errors`: System-level emission failures.
 
 ---
 
@@ -75,7 +75,7 @@ For deep protocol inspection and high-volume signal debugging, `fluxrig` impleme
 *   **Usage**: Activate via the `--level trace` flag in the Rack or via the Mixer API.
 
 ```bash
-# Start a rack with high-fidelity signal tracing
+# Start a rack with per-message tracing
 fluxrig rack --level trace
 ```
 
