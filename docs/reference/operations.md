@@ -127,24 +127,33 @@ gear. I/O gears add `flux.port.bytes_in`, `flux.port.bytes_out`,
 Telemetry lands in DuckDB on the Mixer and is flushed to Parquet. See
 [Telemetry and analytics](telemetry_analytics.md).
 
-## A Rack keeps running without the Mixer
+## A Rack without the Mixer
 
-This is a design decision, not a fallback. A Rack that has enrolled resumes its
-last scenario from local state, and if the bus is unreachable at startup it logs
-`Starting in OFFLINE Mode` and carries on processing.
+A Rack keeps three things in local state: its identity (the Passport), the last scenario it applied, and a write-ahead log of its logs. What it does when the Mixer is unreachable depends on when it lost it.
 
-The consequence for an operator: **a silent Mixer does not stop money moving**,
-and a Rack that looks absent from `topology status` may be serving traffic
-normally. Check the Rack before declaring an outage.
+| When | What the Rack does |
+| :--- | :--- |
+| At start, with a Passport | It waits `snake.offline_start_timeout` for the bus (3 seconds by default) and logs `Starting in OFFLINE Mode`. It then starts the last scenario it applied, from its local copy, if none of that scenario's wires uses the bus (see [lanes](scenario.md#lanes)). A scenario that does needs the bus, and waits for it as a whole: the Rack says so in its log and never runs part of it. |
+| At start, without a Passport | It refuses to start: it has no identity and no scenario to resume. |
+| While running | The process stays up and reconnects by itself when the Mixer returns. A wire between two gears of the same Rack keeps working, because it runs through the Rack's memory. What needs the bus stops: a wire to a gear on another Rack, a wire on the guaranteed lane, the heartbeat, and the export of metrics and traces. |
 
-A Rack that has never enrolled and cannot reach the bus refuses to start,
-because it has no identity and no scenario to resume.
+A Rack that started without the Mixer probes the bus every `snake.offline_retry_interval` (5 seconds by default). When the bus answers, the Rack joins the Mixer: it says hello, receives its Passport, starts its telemetry and listens for scenarios, **without stopping the gears it is running**. A client that was connected to one of them stays connected, and the gears are not started again. If the Mixer then sends a scenario identical to the one running, nothing restarts; a different one is applied as any new scenario is, and restarts the gears it changes.
+
+The bus is the NATS server embedded in the Mixer. A wire between two gears on one Rack does not use it, unless the scenario asks for the guaranteed lane. The consequence for an operator: **a silent Mixer stops what crosses between Racks and what is on the guaranteed lane, and does not stop a flow that stays inside one Rack.** A Rack that looks absent from `topology status` may be serving such a flow normally. Check the Rack before declaring an outage, and restore the Mixer for everything that crosses between Racks.
+
+While there is no bus, the gears of a Rack still signal each other in memory (a link that goes down, a connection to close). Commands from the Mixer, such as the simulator's, reach the gears once the Rack has joined it.
+
+Logs are written to a local write-ahead log and shipped when the bus is reachable again, up to `store.wal_max_size_mb` (500 by default). Metrics and traces are not kept: their export fails while the Mixer is unreachable.
+
+### What is not there yet `[Roadmap]`
+
+*   **A guaranteed lane local to the Rack.** A NATS leaf node in each Rack would keep on-disk storage, with retention limits, for the wires that ask for it while the Mixer is away.
 
 ## What degrades, and what fails
 
 | Situation | What happens |
 | :--- | :--- |
-| Mixer unreachable | Racks keep processing. Telemetry queues locally; no scenario changes land. |
+| Mixer unreachable | Racks stay up and reconnect by themselves. Flows that stay inside one Rack keep running; wires between Racks and on the guaranteed lane fail until the bus returns. Logs are kept in a local write-ahead log, and no scenario changes land. See [A Rack without the Mixer](#a-rack-without-the-mixer). |
 | A gear returns an error | Follows that gear's `on_error`: `reject` (out the error port), `drop` (discard), `kill` (fail the gear). |
 | A destination stops answering | The Conductor's ticket expires and surfaces on the error port. See [Conductor](gears/conductor.md). |
 | A message breaks a spec rule | Depends on the codec's `validation`: `off`, `warn` (logged and counted) or `enforce` (fails the message, then `on_error`). |

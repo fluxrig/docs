@@ -16,7 +16,7 @@ than compiled into it, so a change to a flow is a configuration change.
 ## Core pillars
 
 1.  **Deterministic data plane**: every message is serialized as **Deterministic CBOR (RFC 8949)**, so the same message produces the same bytes on every node and an audit trail can be compared rather than trusted.
-2.  **Distributed Autonomy**: The local processing node (Rack) operates with full independence. It continues to process data, perform transformations, and maintain compliance even during network backhaul or connectivity failures.
+2.  **Distributed edge**: The local processing node (Rack) holds its identity and last scenario in local state, reconnects to the Mixer by itself after a connectivity failure, keeps running the flows that stay inside it, and can start without the Mixer.
 3.  **Unified control plane**: one Mixer holds the registry of enrolled Racks, deploys scenarios to them, and aggregates their telemetry.
 4.  **Remote Fleet Management**: **[Planned]** Future releases will introduce native Over-the-Air (OTA) update capabilities for Racks and Gears, allowing for secure, remote lifecycle management of distributed infrastructure.
 
@@ -42,7 +42,7 @@ The backbone of **fluxrig** is a resilient, distributed messaging mesh that prov
 *   **The tool**: **[NATS JetStream](https://nats.io)**.
 *   **Why**:
     *   **Resilient mesh**: Unlike traditional load balancers, NATS creates a pervasive mesh that handles connectivity gaps automatically.
-    *   **Distributed Autonomy**: We leverage "Leaf Nodes" at the infrastructure boundary. A **Rack** operates with **Sovereign Continuity**, continuing to process data and perform local transformations even during network backhaul or connectivity failures.
+    *   **Reconnection**: A Rack's NATS client reconnects by itself when the Mixer returns. NATS leaf nodes at the edge, which would keep guaranteed delivery inside a Rack while the Mixer is away, are `[Roadmap]`.
     *   **Financial-grade reliability**: We use JetStream to ensure **at-least-once** delivery and **strict ordering**, critical for financial events and command protocols.
     *   **Deterministic Data Encoding**: Low-bandwidth serialization via **[CBOR (RFC 8949)](https://cbor.io)** ensures data integrity and responsiveness over satellite or cellular links.
 

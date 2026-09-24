@@ -16,8 +16,8 @@ production for a decade.
 
 A **Rack** is an edge node running a **scenario**: a YAML description of
 processing steps and how they are wired. The **Mixer** enrolls Racks, deploys
-scenarios to them, and collects their telemetry. A Rack keeps processing while
-the Mixer is unreachable.
+scenarios to them, and collects their telemetry. A Rack keeps its identity and its
+last scenario in local state, and reconnects to the Mixer by itself after an outage.
 
 > [!TIP]
 > Start with the **[5-Minute Quickstart](./tutorials/quickstart.md)**, or read the **[Architecture Overview](./architecture/overview.md)** and the **[use cases](./use_cases/index.md)**.
@@ -26,12 +26,12 @@ the Mixer is unreachable.
 
 ## Why fluxrig?
 
-**fluxrig** is designed for environments where data integrity and edge autonomy are non-negotiable.
+**fluxrig** is designed for environments where data integrity and edge resilience are non-negotiable.
 
 1. **One control plane for many edge nodes**: Racks enroll themselves, receive scenarios, and report telemetry to a single Mixer.
 2. **Protocol Agnostic**: A native ISO 8583 codec whose dialects are described by a spec rather than by code, generic TCP framing for binary protocols, and JSON and the rest through Bento mappings.
 3. **Configuration over Code**: Deploy complex routing and transformation logic via declarative YAML: no custom coding required for standard integrations.
-4. **Sovereign Autonomy**: Edge nodes operate independently, ensuring business continuity even during backhaul outages.
+4. **Edge resilience**: A Rack keeps its identity and last scenario in local state, reconnects by itself after a backhaul outage, and keeps running the flows that stay inside it, and can start without the Mixer.
 
 ### Design philosophy: The professional audio logic
 

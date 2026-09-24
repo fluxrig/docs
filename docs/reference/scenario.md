@@ -142,6 +142,11 @@ If a gear does not specify a `deploy` target, it is treated as a **Global Gear**
 *   **Behavior**: The gear will be pushed to and executed by **every Rack** that connects to the Mixer and receives the scenario.
 *   **Use Case**: This is ideal for "Zero-Config" Getting Started scenarios or for deploying universal monitoring/diagnostic gears across a distributed cluster without knowing the dynamic Rack names in advance.
 
+A gear naming a `deploy` target is validated at activation: the target must
+exist as an active Rack in the registry, or activation fails naming it. Import
+stays permissive, so a scenario can be filed before its Racks enroll. A scenario
+with no push targets activates into nothing, which the Mixer logs as a warning.
+
 ## Pipe configuration
 
 The `wires` (or `pipes`) section defines how data flows between Gears.
@@ -149,36 +154,37 @@ The `wires` (or `pipes`) section defines how data flows between Gears.
 > [!NOTE]
 > **Endpoint grammar.** A wire endpoint is `gear.port` (the rack is taken from the gear's `deploy`) or `rack.gear.port` (an explicit rack / replica instance). Every segment is dot-free (**port names use underscores for roles**, as in `in_reply` and `out_scheme_a`, never dots), so `a.b.c` is always `rack.gear.port`. A wire naming an undefined rack/gear, or a port a gear does not declare, is rejected at import. See [the port model](../architecture/gear.md#wire-endpoint-naming).
 
-### Transport modes
+### Lanes
 
-| Value | Mode | Description |
-| :--- | :--- | :--- |
-| `standard` | **NATS JetStream** | **Default**. Durable, persistent, and observable via NATS CLI. Safe for financial data. |
-| `memory` | **Go Channel** | **Turbo** `[Roadmap]`. Volatile, in-memory pointer passing. Zero-copy (if within same process). Fastest possible speed, but no durability. |
+Each wire travels on one of two lanes. The optional `lane` field of a wire chooses it.
 
-> [!NOTE]
-> **Turbo (`transport: memory`) is [Roadmap].** The GoChannel fast lane is in technical design; today all wires use the `standard` (NATS JetStream) transport. The example below shows the intended syntax.
+| `lane` | Where the messages go | Delivery | Needs the Mixer |
+| :--- | :--- | :--- | :--- |
+| `hot` | Through the memory of the Rack, from the gear that emits to the gear that consumes. Nothing is stored and nothing is sent to the Mixer. | At most once, in order. A message still queued when the Rack process ends is lost. | No |
+| `guaranteed` | Over the bus, the NATS JetStream server embedded in the Mixer, which stores each message before the emitting gear is told it was accepted. | Stored, encrypted at rest by default (see [data at rest](../architecture/security.md#data-at-rest-and-in-logs)). | Yes |
+| not set | `hot` when both gears run on the same Rack, `guaranteed` when they run on different Racks. | | |
 
-### Example: hybrid wiring
+A wire between gears on different Racks is always on the guaranteed lane. A wire that asks for `hot` between gears on different Racks is rejected at import.
+
+What the hot lane changes for an operator:
+
+*   **Nothing rests on a disk.** A message on a hot wire, a card number included, is in the memory of the Rack and nowhere else. A wire that asks for `guaranteed` inside one Rack is stored on the Mixer.
+*   **It keeps running while the Mixer is away.** A hot wire needs no bus, so a flow that stays inside one Rack keeps processing when the Mixer is unreachable. See [A Rack without the Mixer](operations.md#a-rack-without-the-mixer).
+*   **A slow consumer slows the emitter.** Each hot wire holds `rack.lane_queue_size` messages (1024 by default). A gear that emits into a full queue waits `rack.lane_send_timeout` (5 seconds by default) and then gets an error, as it would from a bus that does not answer. Gears that hand messages to each other in a cycle can fill each other's queues, and the timeout is what turns that into an error and not a stall.
+*   **A stop that is asked to be graceful delivers what is queued**, within `rack.drain_timeout`. A crash does not.
+
+### Example: choosing a lane
 
 ```yaml
-meta:
-  name: High-Freq Vibration Monitoring
-  version: 1.0.0
-
 wires:
-  #  TURBO MODE: 1000Hz Vibration Data
-  # We pipe raw specs to the filter in RAM to avoid disk I/O overhead.
-  - from: mqtt-in.out
-    to:   noise-filter.in
-    transport: memory
+  # Inside the Rack: through memory. This is the default, and `lane: "hot"` says the same.
+  - from: "gateway.out"
+    to: "gateway.in"
 
-  # STANDARD MODE: Aggregated Alerts
-  # The filter outputs only 1 msg/sec (Anomalies).
-  # We WANT this to be durable and visible on the NATS bus.
-  - from: noise-filter.alert
-    to:   cloud-uplink.req
-    # transport: standard (Implicit)
+  # Storage is asked for even though both gears are on one Rack.
+  - from: "gateway.out"
+    to: "audit.in"
+    lane: "guaranteed"
 ```
 
 ## Versioning & storage

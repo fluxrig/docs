@@ -116,7 +116,7 @@ The **Mixer** is **105 MB**, dominated by the statically linked DuckDB engine, a
 | **Logs** | **[OpenSearch](https://opensearch.org/)** (Apache 2.0) | Search | Evaluation Candidate for Log Search. |
 | **Analytics** | **[ClickHouse](https://clickhouse.com/)** (Apache 2.0) | Database | Evaluation Candidate for Petabyte-scale OLAP (Enterprise). |
 | **ID Generation** | **[Google/uuid](https://github.com/google/uuid)** (BSD) | Library | Distributed 128-bit UUID v7 (RFC 9562) |
-| **OTLP Export** | **[OTLP](https://opentelemetry.io/docs/specs/otlp/)** | Standard | Vendor-neutral export to any OTel-compatible backend. |
+| **OTLP Export** | **[OTLP](https://opentelemetry.io/docs/specs/otlp/)** | Standard | **[Roadmap]** Vendor-neutral export to any OTel-compatible backend. Not built today. |
 
 > **Ref**: See [Observability Architecture](../architecture/observability.md) for detailed tier documentation.
 

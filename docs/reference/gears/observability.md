@@ -18,7 +18,7 @@ As **fluxrig** scales to handle enterprise data volumes, the responsibility of s
 
 ## Motivation
 
-Currently, the Mixer natively implements the Embedded (DuckDB) and Enterprise (ClickHouse/OpenSearch) observability tiers. However, by transforming these export pipelines into autonomous Native Gears, we gain:
+Currently, the Mixer implements only the Embedded (DuckDB and Parquet) observability tier; the Standard and Enterprise tiers are roadmap. However, by transforming these export pipelines into autonomous Native Gears, we gain:
 
 *   **Decoupling**: Disconnecting the Mixer's critical Control Plane responsibilities from Data Plane telemetry egress.
 *   **Resilience**: Using NATS JetStream as a durable buffer, an Observability Gear can handle external database outages without blocking cluster operations.

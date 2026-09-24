@@ -51,22 +51,21 @@ To bridge the gap between business operations and technical troubleshooting, eve
 
 ---
 
-## Telemetry and autonomy
+## Telemetry during an outage
 
-The system is designed to maintain 100% auditability even during network isolation.
+Logs are written to a local write-ahead log on the Rack and shipped to the Mixer
+when the bus is reachable. Metrics and traces are exported over the bus and are
+not kept while it is away.
 
 ```mermaid
 graph LR
     subgraph Rack ["The Rack"]
         direction TB
-        subgraph Pipeline ["Logic Execution Path"]
-            direction LR
-            In[Inbound] --> Proc[Process] --> Out[Outbound]
-        end
-        WAL[("Local CBOR WAL")]
+        Gears["Gears"]
+        WAL[("Local WAL: logs only")]
     end
 
-    subgraph Bus ["Telemetry Bus"]
+    subgraph Bus ["Telemetry Bus (on the Mixer)"]
         direction TB
         NATS{{"NATS Telemetry Aggregation"}}
         Store[("Analytics sink")]
@@ -79,21 +78,12 @@ graph LR
     end
     Store -.->|Query Path| CH
 
-    %% Telemetry TAPs
-    In -.->|"Telemetry TAP"| NATS
-    Proc -.->|"Telemetry TAP"| NATS
-    Out -.->|"Telemetry TAP"| NATS
-
-    %% Local Sovereignty Flow
-    In -.->|Immutable Archive| WAL
-    Proc -.->|Immutable Archive| WAL
-    Out -.->|Immutable Archive| WAL
-    
-    %% Sync Path
-    WAL == "Deferred Sync" ==> Store
+    Gears -.->|"Metrics and traces"| NATS
+    Gears -.->|"Logs"| WAL
+    WAL == "Ship when the bus is reachable" ==> NATS
 
     classDef gear fill:#ffffff,stroke:#3c4043,stroke-width:2px;
-    class Pipeline gear;
+    class Gears gear;
 ```
 
 ---

@@ -76,9 +76,9 @@ The **Scenario** is the declarative blueprint of a pipeline. It defines the sign
 
 ## Sovereign persistence strategy
 
-Every Rack functions as an independent, **Sovereign Data Vault**, ensuring that signal integrity is maintained even during total cloud connectivity failure.
+Every Rack keeps its logs in a local write-ahead log, so they survive a connectivity failure and are shipped when the bus returns.
 
-1.  **Immutable WAL**: Every signal passing through a Rack is recorded to a local, immutable **Write-Ahead Log (WAL)** using binary storage.
+1.  **Log WAL**: Every log line a Rack produces is recorded to a local **Write-Ahead Log (WAL)** using binary storage, capped at `store.wal_max_size_mb`. Business messages are not written to it: they travel over the bus.
 2.  **Non-Intrusive Signal Tap**: Observability telemetry (Metrics/Traces) is "tapped" from the main execution path. This data is uploaded asynchronously, ensuring that observability never introduces latency to the business hot-path.
 3.  **Data Residency Sovereignty**: Detailed payloads (e.g., raw financial messages) can be configured to remain exclusively in the local edge vault while only high-level metadata reaches the central Mixer. 
 

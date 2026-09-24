@@ -28,10 +28,12 @@ testing. Here it is output, not an obligation.
   title="ISO 8583:1987 (ASCII)"
   doc="/reference/iso8583-v87-ascii.html" />
 
-It carries its own source, so the two entries switch panes within one file: the
-messages, or the spec they were rendered from, numbered and foldable. That spec
-ships with fluxrig at `examples/specs/iso8583-v87-ascii.yaml`, and this is what
-produced the document above:
+It carries the spec it was made from, numbered and foldable, in a pane of its
+own. In a public render the blocks of fields marked `scope: private` are cut out
+of it and marked, and the lines that remain keep the numbers the file gives them,
+so a line shown here is the line to open. That spec ships with fluxrig at
+`examples/specs/iso8583-v87-ascii.yaml`, and this is what produced the document
+above:
 
 ```bash
 fluxrig spec doc examples/specs/iso8583-v87-ascii.yaml \

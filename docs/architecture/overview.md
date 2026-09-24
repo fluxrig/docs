@@ -62,12 +62,12 @@ A **Gear** is the primary logic unit. It functions as a pluggable, high-resoluti
 The Rack is the "execution case" running locally or at the edge. It is designed to be **Static, Self-Contained, and High-Performance**, acting as the runtime environment for local signal processing.
 
 *   **Core**: A compiled **Go binary** (`fluxrig`).
-*   **Deterministic Engine**: Embeds NATS JetStream and the Wasm runtime.
+*   **Deterministic Engine**: Embeds the Wasm runtime, and connects to the NATS JetStream server embedded in the Mixer.
 *   **Zero-Agent Footprint**: Observability (OTel) and configuration management are embedded directly in the binary.
 *   **Hosted Gears**: Executes gateways, codecs, and logic units as a unified pipeline.
 
-### Sovereign autonomy
-The Rack is designed for **Sovereign Continuity**. Unlike traditional thin clients, it continues functioning in "offline mode" if the Mixer is unreachable, maintaining local data processing and transformation integrity even during backhaul failure.
+### Recovery without intervention
+A Rack starts from its Passport when the Mixer is unreachable and runs the last scenario it applied if none of its wires uses the bus, then joins the Mixer by itself when it returns, without stopping what it is running. A wire between two gears of one Rack goes through the Rack's memory and keeps running without the Mixer; what crosses between Racks travels over the bus embedded in the Mixer and waits for it. See [A Rack without the Mixer](../reference/operations.md#a-rack-without-the-mixer).
 
 <LikeC4 project="rack" view="internals" height={440} />
 
@@ -92,7 +92,7 @@ The Registry functions as a **Unified Operational Ledger**. In the current relea
 The **Rack** is the execution engine that lives locally or at the infrastructure boundary. It is designed for absolute autonomy and wire-speed performance.
 
 *   **Gear Runtime**: A lightweight, non-blocking execution environment.
-*   **Sovereign Autonomy**: Racks execute logic based on their local **Passports** (cryptographically-signed configuration snapshots), ensuring zero business downtime even if the Control Plane becomes unreachable.
+*   **Local identity**: Racks start from their local **Passports** (cryptographically signed identity snapshots) without contacting the Control Plane. Flows that stay inside one Rack keep running while the Control Plane is away, and a Rack can start without it.
 *   **OTel Ingest**: Local telemetry collection and buffering with resilient outbound delivery.
 
 ---
