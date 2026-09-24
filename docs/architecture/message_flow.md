@@ -132,7 +132,7 @@ Beyond business data, **fluxrig** maintains a dedicated, high-priority **Control
 ---
 
 ## Reliability: connectivity convergence
-To achieve the **[Sovereign Continuity](deployment.md#sovereign-continuity)** objective, **fluxrig** implements a relentless connectivity handshake during every deployment and hot-reload.
+To keep the first messages from being lost while subjects propagate, **fluxrig** implements a relentless connectivity handshake during every deployment and hot-reload.
 
 ### The Relentless Handshake
 When a Rack starts or reloads a Scenario, it does not immediately activate the gear logic. Instead, it enters a **Convergence Phase**:

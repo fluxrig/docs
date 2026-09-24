@@ -45,7 +45,7 @@ When you deploy **fluxrig**, you are effectively building a distributed "recordi
 
 -   **Modular Logic (Hot-Swapping)**: Just as an engineer can swap a compressor pedal mid-session, you can swap a **Gear** (e.g., migrating from ISO8583 to JSON) without re-architecting your entire signal chain.
 -   **Zero-Interference Monitoring**: We "tap" the signal at the Gear level, providing OpenTelemetry traces that are bit-perfect representations of the data flow without introducing latency to the primary path.
--   **Resilient Patching**: Our **Wires** are persistent by design. If a destination is offline, the signal is buffered within the wire until it can be safely delivered, ensuring zero data loss during network transients.
+-   **Two lanes**: A wire inside one Rack goes through memory, with nothing stored and nothing sent to the Mixer. A wire between Racks, or one that asks for it, is on the guaranteed lane: NATS JetStream stores each message before the emitting gear is told it was accepted. A message emitted while the Rack cannot reach the bus on a guaranteed wire is not accepted, and the emitting gear receives the error.
 
 ---
 

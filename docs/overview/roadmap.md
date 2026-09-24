@@ -46,6 +46,7 @@ This roadmap outlines the strategic direction for **fluxrig**. It defines the jo
 | v0.9.x | Delivered | Enrichment & Correlation | Enrichment from outside the message under a hard deadline, and correlation keys that survive a bus hop. |
 | v0.10.x | Active | The Semantic Layer | A protocol spec states its rules and the codec enforces them: per-message field usage, conditions, value domains and cross-field checks, plus a protocol reference generated from the spec. |
 | Future | Planned | Differential Analysis | Correlator gear: parallel shadow mastering and reconciliation against the immutable archives. |
+| Future | Planned | Guaranteed Local Lane | Rack operation without the Mixer, continued: a NATS leaf node in each Rack keeps guaranteed delivery on disk, with retention limits and durable delivery between Racks. |
 | Future | Planned | Hardened Integrity | Forensic analytics (DuckLake), at-rest encryption for persistent stores, durable ticket store (`local_durable`), per-destination circuit breaker, and peer heartbeats. |
 
 ## Phase 5: enterprise control

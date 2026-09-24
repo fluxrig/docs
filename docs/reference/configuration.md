@@ -68,6 +68,7 @@ Foundational identity and path settings.
 | `name` | `string` | `"node-01"` | **Unique Name**. Claims this specific identity. |
 | `state_dir` | `string` | `"./data"` | Root directory for state and WAL. |
 | `state_file` | `string` | `"rack.flux"` | **Signed State Bundle** (CBOR). Persists Identity, Config, and Secrets. |
+| `scenario_file` | `string` | `"scenario.flux"` | The Rack's own copy of the last scenario it applied, in `state_dir` (CBOR, mode `0600`). The Rack resumes it at start without waiting for the Mixer to send it again. Empty keeps no copy. Also settable as `store.scenario_file`. |
 
 #### `[Rack]`
 Rack-specific settings.
@@ -84,6 +85,8 @@ Rack-specific settings.
 | `handshake_interval` | `string` | `"500ms"` | Re-emission of the connectivity probes sent before gears are activated. |
 | `convergence_timeout` | `string` | `"5s"` | How long a Rack waits for every wire to confirm reachable before giving up on the convergence phase. |
 | `drain_timeout` | `string` | `"35s"` | How long in-flight messages are given to finish on shutdown before gears are stopped. |
+| `lane_queue_size` | `int` | `1024` | Messages each [hot lane](scenario.md#lanes) wire holds in memory between the gear that emits and the gear that consumes. |
+| `lane_send_timeout` | `string` | `"5s"` | How long a gear that emits waits for room in a full hot lane queue before it gets an error. |
 | `cleanup_timeout` | `string` | `"2s"` | Grace given to release resources after draining. |
 
 #### `[Store]`
@@ -107,6 +110,16 @@ Configuration for the underlying transport bus.
 | `operation_timeout` | `string` | `"5s"` | Deadline for a single bus operation. |
 | `subscription_retry_wait` | `string` | `"200ms"` | Wait between attempts to establish a subscription. |
 | `subscription_retry_attempts` | `int` | `5` | Attempts before a subscription is reported failed. |
+| `initial_retry_wait` | `string` | `"500ms"` | Wait before the first reconnect attempt, with exponential backoff on repeats. |
+| `initial_retry_attempts` | `int` | `10` | Attempts before an initial connection is reported failed. |
+| `offline_start_timeout` | `string` | `"3s"` | Longest a Rack holding a passport waits for the bus at start before it runs offline. A Rack without a passport keeps the full `initial_retry_*` schedule. `0s` removes the bound. |
+| `offline_retry_interval` | `string` | `"5s"` | How often a Rack that started offline probes the bus. When it answers, the Rack restarts its session and goes online. `0s` turns the probe off, and the Rack stays offline until restarted. |
+| `store_encryption` | `bool` | `true` | Mixer only. Encrypts the message store of the bus on disk: every message, stream and key-value bucket. See [data at rest](../architecture/security.md#data-at-rest-and-in-logs). |
+| `store_cipher` | `string` | `"chacha"` | Mixer only. `chacha` (ChaCha20-Poly1305) or `aes` (AES-GCM). |
+| `store_key_file` | `string` | `""` | Mixer only. File holding the store key, at least 32 characters. Empty derives the key from the cluster key. |
+| `store_old_key_file` | `string` | `""` | Mixer only. The key the store had before `store_key_file`, for the start that rotates it. |
+| `stream_max_age` | `string` | `"24h"` | Mixer only. Oldest message a bus stream keeps. Empty keeps them without an age limit. |
+| `stream_max_bytes` | `int` | `1073741824` | Mixer only. Largest size of a bus stream, in bytes. `0` means no limit. |
 | `inactive_threshold` | `string` | `"30s"` | Silence after which a consumer is treated as inactive. |
 | `root_ca_file` | `string` | `""` | CA bundle verifying the Mixer's bus certificate. Also settable as `rack.bus.root_ca_file`. |
 | `insecure_skip_verify` | `bool` | `false` | Skip verification of the bus certificate. Development only. Also settable as `rack.bus.insecure_skip_verify`. |
@@ -117,8 +130,13 @@ Configuration for the underlying transport bus.
 | :--- | :--- | :--- | :--- |
 | `telemetry.service_name` | `string` | `"flux.rack"` | Service name reported on every span, metric and log. |
 | `telemetry.base_subject` | `string` | `"flux.telemetry"` | Bus subject prefix telemetry batches are published on. |
-| `telemetry.batch_interval` | `string` | `"5s"` | How often a batch is flushed to the Mixer. |
+| `telemetry.batch_interval` | `string` | `"5s"` | How often a batch is flushed to the Mixer. On the Mixer it is also how often telemetry is flushed to persistent storage. |
 | `telemetry.max_batch_size` | `int` | `512` | Records per batch before it is flushed early. |
+| `telemetry.stream_name` | `string` | `"flux-telemetry"` | Name of the JetStream stream that holds the telemetry batches. |
+| `telemetry.disabled` | `bool` | `false` | Turns telemetry off. Also settable with `FLUXRIG_DISABLE_TELEMETRY`. |
+| `telemetry.metrics.host_enabled` | `bool` | `false` | Collect host metrics (CPU, memory, disk, network). |
+| `telemetry.metrics.runtime_enabled` | `bool` | `false` | Collect Go runtime metrics. |
+| `telemetry.metrics.bento_enabled` | `bool` | `false` | Collect the metrics of the Bento gear. |
 
 #### Example
 
@@ -185,12 +203,12 @@ Control how new Racks are admitted to the rig.
 | `bootstrap_secret` | `string` | `"fluxrig"` | Shared secret for zero-config enrollment and identity adoption. It ships with a known value, so a deployment that does not set it is running the documented one. |
 
 #### `[Ingest]` (Mixer)
-Control telemetry ingestion buffering and flushing.
+Telemetry ingestion buffering and flushing. Neither field is read today: the Mixer flushes telemetry to persistent storage every `telemetry.batch_interval` (default `5s`).
 
 | Field | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `flush_interval` | `string` | `"5s"` | Interval for flushing telemetry to persistent storage. |
-| `buffer_size` | `int` | `1024` | Internal channel buffer size for telemetry ingestion. |
+| `flush_interval` | `string` | n/a | **[Roadmap]** Not read today. See `telemetry.batch_interval`. |
+| `buffer_size` | `int` | n/a | **[Roadmap]** Not read today. |
 
 #### `[API]`
 Mixer REST API settings.
@@ -199,6 +217,9 @@ Mixer REST API settings.
 | :--- | :--- | :--- | :--- |
 | `port` | `int` | `8090` | **Server Port** for the HTTP/gRPC API listener. |
 | `read_header_timeout` | `string` | `"3s"` | Deadline for reading request headers, which bounds a slow-header client. |
+| `control_confirm_timeout` | `string` | `"2s"` | How long a simulator control command (`/api/v1/control/sim/{action}`) waits for a gear to acknowledge it before the request answers that nobody is listening. |
+| `tls_cert_file` | `string` | `""` | Server certificate. The API serves HTTPS when this and `tls_key_file` are both set. |
+| `tls_key_file` | `string` | `""` | Server private key. |
 
 #### `[Wasm]` (Mixer)
 Where signed Wasm gears and the keys that verify them are kept.
@@ -226,9 +247,9 @@ Embedded NATS Server (JetStream) settings.
 | `domain` | `string` | `"flux"` | JetStream Domain Name. |
 | `stream_name` | `string` | `"flux-msg"` | Name of the primary JetStream stream. |
 | `stream_subjects` | `[]string` | `["flux.msg.>", "flux.gear.>", "fluxrig.>"]` | Wildcard subjects to capture. |
-| `business_stream_max_age` | `string` | `"720h"` | Data retention time for business logic streams. |
-| `telemetry_stream_max_age` | `string` | `"24h"` | Data retention time for telemetry streams. |
-| `durable` | `bool` | `false` | Enable disk-durable JetStream persistence. |
+| `business_stream_max_age` | `string` | n/a | **[Roadmap]** Not read today. The age limit of the message stream is `stream_max_age`, below. |
+| `telemetry_stream_max_age` | `string` | n/a | **[Roadmap]** Not read today. |
+| `durable` | `bool` | n/a | **[Roadmap]** Not read today. The bus stores its data on disk. |
 
 > [!NOTE]
 > The Mixer starts this server itself on every boot. There is no setting that
@@ -279,8 +300,8 @@ Global observability settings.
 | Field | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
 | `enabled` | `bool` | `true` | Enable/disable observability collection. |
-| `tier` | `string` | `"embedded"` | Backend tier: `embedded` (standard), `otlp` (collector). |
-| `sampling_rate` | `float` | `1.0` | Trace sampling rate (0.0 - 1.0). |
+| `tier` | `string` | `"embedded"` | Backend tier. `embedded` is the only one built. `otlp` is **[Roadmap]**. |
+| `sampling_rate` | `float` | n/a | **[Roadmap]** Not read today: every trace is kept. |
 
 ---
 
@@ -291,12 +312,12 @@ Settings for the Embedded tier (DuckDB + Parquet).
 
 | Field | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `data_dir` | `string` | `"./data/telemetry"` | Directory for telemetry storage. |
-| `flush_interval` | `string` | `"5s"` | Interval to flush data to disk. |
-| `retention_days` | `int` | `30` | Days of telemetry kept in DuckDB before it is aged out. |
+| `data_dir` | `string` | n/a | **[Roadmap]** Not read today. Telemetry is stored under the directory of `[Store]`. |
+| `flush_interval` | `string` | n/a | **[Roadmap]** Not read today. See `telemetry.batch_interval`. |
+| `retention_days` | `int` | n/a | **[Roadmap]** Not read today: nothing removes old telemetry files, so plan the disk for them or remove them by hand. |
 
-#### `[Observability.embedded.storage]`
-Storage format and organization.
+#### `[Observability.embedded.storage]` **[Roadmap]**
+Storage format and organization. None of these settings is read today: telemetry is written as Parquet.
 
 | Field | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
@@ -304,8 +325,8 @@ Storage format and organization.
 | `partition_by` | `string` | `"hour"` | Time partitioning: `hour`, `day`. |
 | `compression` | `string` | `"zstd"` | Compression: `zstd`, `snappy`, `none`. |
 
-#### `[Observability.embedded.rotation]`
-Rotation and retention policies.
+#### `[Observability.embedded.rotation]` **[Roadmap]**
+Rotation and retention policies. None of these settings is read today, and neither is `retention_days` in `[Observability.embedded]`: nothing removes old telemetry files.
 
 | Field | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
@@ -406,29 +427,16 @@ Data is organized into **telemetry** (system signals) and **messages** (business
 [observability]
 enabled = true
 tier = "embedded"
-sampling_rate = 1.0
 
-[observability.embedded]
-# Data_dir is managed by [store] config
-flush_interval = "5s"
-
-[observability.embedded.storage]
-format = "parquet"
-partition_by = "hour"
-compression = "zstd"
-
-[observability.embedded.rotation]
-policy = "both"
-max_age_days = 30
-max_size_gb = 10
-check_interval = "1h"
+# Where telemetry is stored is set by [store], and how often it is flushed by
+# telemetry.batch_interval.
 ```
 
 ---
 
-### OTLP tier configuration (vendor-neutral)
+### [Roadmap] OTLP tier configuration (vendor-neutral)
 
-For integration with any OpenTelemetry-compatible backend (Datadog, Jaeger, Grafana Tempo, etc.).
+**[Roadmap]** The OTLP tier is not built: fluxrig does not export to an external collector today, and none of the settings on this page under `[Observability.otlp]` is read. The design is an export to any OpenTelemetry-compatible backend.
 
 #### `[Observability.otlp]`
 OpenTelemetry Protocol exporter settings.
@@ -441,7 +449,9 @@ OpenTelemetry Protocol exporter settings.
 | `insecure` | `bool` | `false` | Skip TLS verification. |
 | `timeout` | `string` | `"30s"` | Request timeout. |
 
-#### OTLP example
+#### OTLP example **[Roadmap]**
+
+None of this is read today.
 
 ```toml
 [observability]

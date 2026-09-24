@@ -200,6 +200,10 @@ disposition in an `0810`. `messages` on the field says so, one entry per message
     - mti: ["0110", "0210"]
       usage: mandatory
       response_value: new
+    - mti: "0410"
+      usage: mandatory
+      response_value: new
+      note: "Issuer disposition of the reversal, originated here."
     - mti: "0810"
       usage: mandatory
       response_value: new
@@ -211,9 +215,10 @@ disposition in an `0810`. `messages` on the field says so, one entry per message
       note: "A network management request carries no disposition."
 ```
 
-Four entries for one element, and none of them is redundant: it is required in an
-authorization or financial response, required again in a network management
-response, and forbidden in both of the requests that cause them.
+Five entries for one element, and none of them is redundant: it is required in an
+authorization or financial response, required again in a reversal response and in
+a network management response, and forbidden in both of the requests that cause
+those last two.
 
 An entry carries what varies by message, and `mti` takes a list because messages
 that share a rule are common, and repeating an identical entry per message is how a

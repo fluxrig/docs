@@ -107,12 +107,17 @@ To ensure **Zero-Downtime** operations at the edge, institutional deployments ut
 *   **Failover**: If a node fails, traffic is re-routed by the Layer 4 Load Balancer or the NATS mesh to healthy nodes.
 *   **Transactional Consistency**: The Mixer coordinates **Saga Orchestration** to ensure eventually consistent states during node failures, managing required reversals or compensations automatically.
 
-## Sovereign Continuity
-A core strength of the **fluxrig** architecture is **Sovereign Continuity**. This principle guarantees that the **Data Plane is independent of the Control Plane's real-time availability**.
+## Rack behavior without the Mixer
 
-*   **Offline Execution**: If the Mixer or the Snake Tunnel goes offline, Racks continue to process business signals without interruption using their signed `state.flux` Passports.
-*   **Decoupled Failure Domains**: A failure in the central Mixer inhibits management operations (e.g., deploying new scenarios) but has zero impact on the mission-critical transactional hot-path.
-*   **Automatic Recovery**: When connectivity is restored, Racks automatically reconnect via the Snake Tunnel and flush any buffered telemetry logs to the Mixer.
+The Snake, the NATS server that carries messages between Racks, runs inside the Mixer.
+
+*   **Identity survives**: the signed Passport (`state.flux`) lets a Rack start and prove its identity without contacting the Mixer.
+*   **Scenario survives**: a Rack keeps a local copy of the last scenario it applied and starts it on its own, without the Mixer, when none of its wires uses the bus. One that does waits for the bus.
+*   **Recovery is automatic**: a Rack that loses the Mixer reconnects by itself, and one that started without it probes the bus and joins the Mixer when it answers, without stopping the gears it is running.
+*   **Flows inside one Rack keep running**: a wire between two gears of the same Rack goes through the Rack's memory (the hot lane), so it needs no Mixer.
+*   **What crosses between Racks waits for the Mixer**, and so does every wire on the guaranteed lane. See [A Rack without the Mixer](../reference/operations.md#a-rack-without-the-mixer).
+
+A guaranteed lane local to each Rack, over a NATS leaf node, is `[Roadmap]`.
 
 ---
 
@@ -134,7 +139,9 @@ In the current release, the hot-reload of a Scenario involves a **coordinated re
 | Feature | Status | Goal |
 | :--- | :--- | :--- |
 | **Rack Clustering** | Planned | Hardware redundancy for high-load sites. |
-| **Sovereign Continuity** | Available | Uninterrupted business logic during Mixer downtime. |
+| **In-memory lane for wires inside a Rack** | Available | A flow that stays inside one Rack keeps running while the Mixer is away. |
+| **Start without the Mixer** | Available | A Rack that starts while the Mixer is away runs its saved scenario when none of its wires uses the bus, and joins the Mixer later without stopping it. |
+| **Guaranteed lane local to a Rack** | Planned | A NATS leaf node in each Rack keeps on-disk storage for the wires that ask for it while the Mixer is away. |
 | **Mixer Clustering (HA)** | Planned | Multi-node Mixer for large-scale rig management (future). |
 | **Containerization** | Planned | Distroless images for cloud-native orchestration (future). |
 
