@@ -10,42 +10,42 @@ hide_title: true
 
 It provides a unified control plane to route, transform, and monitor data streams
 across heterogeneous environments, from industrial IoT sensors to global payment
-networks. The routing and transformation logic is declarative configuration,
-which holds as much for a flow being designed now as for one that has been in
-production for a decade.
+networks. Declarative configuration defines the routing and transformation logic.
+This applies to a flow that engineers design now.
+It also applies to one in production for a decade.
 
-A **Rack** is an edge node running a **scenario**: a YAML description of
-processing steps and how they are wired. The **Mixer** enrolls Racks, deploys
-scenarios to them, and collects their telemetry. A Rack keeps its identity and its
+A **Rack** is an edge node that runs a **scenario**: a YAML description of
+processing steps and how the scenario wires them. The **Mixer** enrolls Racks.
+It deploys scenarios to them. It collects their telemetry. A Rack keeps its identity and its
 last scenario in local state, and reconnects to the Mixer by itself after an outage.
 
 > [!TIP]
-> Start with the **[5-Minute Quickstart](./tutorials/quickstart.md)**, or read the **[Architecture Overview](./architecture/overview.md)** and the **[use cases](./use_cases/index.md)**.
+> Start with the **[5-Minute Quickstart](./tutorials/quickstart.md)**. For background, read the **[Architecture Overview](./architecture/overview.md)** and the **[use cases](./use_cases/index.md)**.
 
 ---
 
 ## Why fluxrig?
 
-**fluxrig** is designed for environments where data integrity and edge resilience are non-negotiable.
+**fluxrig** serves environments where data integrity and edge resilience are non-negotiable.
 
-1. **One control plane for many edge nodes**: Racks enroll themselves, receive scenarios, and report telemetry to a single Mixer.
-2. **Protocol Agnostic**: A native ISO 8583 codec whose dialects are described by a spec rather than by code, generic TCP framing for binary protocols, and JSON and the rest through Bento mappings.
-3. **Configuration over Code**: Deploy complex routing and transformation logic via declarative YAML: no custom coding required for standard integrations.
-4. **Edge resilience**: A Rack keeps its identity and last scenario in local state, reconnects by itself after a backhaul outage, and keeps running the flows that stay inside it, and can start without the Mixer.
+1. **One control plane for many edge nodes**. Racks enroll themselves. They receive scenarios. They report telemetry to a single Mixer.
+2. **Protocol agnostic**. A native ISO 8583 codec reads its dialects from a spec, not from code. Generic TCP framing handles binary protocols. Bento mappings handle JSON and the rest.
+3. **Configuration over code**. Deploy complex routing and transformation logic with declarative YAML. Standard integrations need no custom code.
+4. **Edge resilience**. A Rack keeps its identity and last scenario in local state. It reconnects by itself after a backhaul outage. It keeps running the flows that stay inside it. It can start without the Mixer.
 
-### Design philosophy: The professional audio logic
+### Design philosophy: the professional audio logic
 
 We borrow our architectural nomenclature from professional audio engineering to describe complex data flows with both precision and scale:
 
-*   **The Gear**: A modular unit of logic (an ISO 8583 codec, a Bloblang mapping, a Wasm module of your own).
-*   **The Rack**: An edge node that hosts and executes multiple Gears (like a stage rack).
-*   **The Mixer**: The central Front of House (FOH) control plane that manages the fleet and aggregates telemetry.
+*   **The Gear**: A Gear is a modular unit of logic (an ISO 8583 codec, a Bloblang mapping, a Wasm module of your own).
+*   **The Rack**: A Rack is an edge node that hosts and executes multiple Gears (like a stage rack).
+*   **The Mixer**: The Mixer is the central Front of House (FOH) control plane that manages the fleet and aggregates telemetry.
 
 > **[Read more about the professional audio logic →](./overview/philosophy.md)**
 
 ---
 
-## Technical Architecture
+## Technical architecture
 
 ```mermaid
 flowchart LR
@@ -73,7 +73,7 @@ flowchart LR
     Mixer --> Warehouse
 ```
 
-### Core Entities
+### Core entities
 
 | Entity | Technical Role | Analogy |
 | :--- | :--- | :--- |
@@ -88,24 +88,24 @@ flowchart LR
 
 ## Choose your journey
 
-### For Operators & SREs
-**Maintain maximum uptime** and operational visibility. **fluxrig** provides the tools to orchestrate distributed racks, manage immutable snapshots, and analyze telemetry in real time.
+### For operators & SREs
+**Maintain uptime** and operational visibility. **fluxrig** provides the tools to orchestrate distributed racks. It manages immutable snapshots. It analyzes telemetry in real time.
 
 *   **[Deployment architecture & binaries →](./architecture/deployment.md)**
 *   **[Operations & CLI reference →](./reference/cli.md)**
 *   **[Technical configuration (Mixer/Rack) →](./reference/configuration.md)**
 *   **[Telemetry & analytics guide →](./reference/telemetry_analytics.md)**
 
-### For Developers & SDK Users
-**Build specialized processing logic** with minimal overhead. Leverage the Native Go SDK to create custom protocol drivers or use the declarative Bento Gear for high-speed message transformation.
+### For developers & SDK users
+**Build specialized processing logic**. Use the Native Go SDK to create custom protocol drivers. Use the declarative Bento Gear for message transformation.
 
 *   **[Writing your first Native Gear →](./tutorials/writing_gears.md)**
 *   **[SDK reference & contract →](./reference/sdk.md)**
 *   **[Bento Gear declarative logic →](./reference/gears/bento.md)**
 *   **[Gears ecosystem reference →](./reference/gears/index.md)**
 
-### For Architects & Security Teams
-**Design resilient, sovereign data planes.** **fluxrig** allows for the design of complex, multi-actor topologies that enforce strict data isolation, zero-trust connectivity, and deterministic execution.
+### For architects & security teams
+**Design resilient, sovereign data planes.** With **fluxrig**, design complex, multi-actor topologies. They enforce strict data isolation. They enforce zero-trust connectivity. They enforce deterministic execution.
 
 *   **[System foundation & core principles →](./overview/foundation.md)**
 *   **[Security & identity architecture →](./architecture/security.md)**

@@ -5,19 +5,19 @@ title: Telemetry & analytics
 
 # Telemetry & analytics
 
-This section provides advanced query patterns for analyzing **fluxrig** observability data across different storage tiers.
+This section provides query patterns for analyzing **fluxrig** observability data across different storage tiers.
 
-In the **Embedded Tier** (the tier implemented in the current release), all telemetry (traces, logs, metrics) and business messages are stored as **Partitioned Parquet** files. This "Cold Storage" strategy provides institutional audit readiness without the overhead of a centralized database, while remaining queryable via the **Operational Ledger** (DuckDB).
+The **Embedded Tier** is the tier that the current release implements. In this tier, the system stores all telemetry (traces, logs, metrics) and business messages as **Partitioned Parquet** files. This "Cold Storage" strategy provides institutional audit readiness without the overhead of a centralized database, and it remains queryable via the **Operational Ledger** (DuckDB).
 
 ## Warehouse structure
-Data is automatically exported from the Rack's active buffers to the local Warehouse using an hourly partitioning scheme:
+The system automatically exports data from the Rack's active buffers to the local Warehouse with an hourly partitioning scheme:
 
 - **Logs**: `data/telemetry/logs/YYYY/MM/DD/HH/logs_<timestamp>.parquet`
 - **Metrics**: `data/telemetry/metrics/YYYY/MM/DD/HH/metrics_<timestamp>.parquet`
 - **Messages**: `data/messages/<wire_id>/YYYY/MM/DD/HH/messages_<wid>_<timestamp>.parquet`
 
 ## Hybrid analysis
-The platform leverages DuckDB's `read_parquet` capabilities discoverable via the Registry to join active state with the hourly archives.
+The platform uses DuckDB's `read_parquet` capabilities that the Registry exposes to join active state with the hourly archives.
 
 ```sql
 -- Analyze errors by Gear across active memory AND cold storage
@@ -32,7 +32,7 @@ GROUP BY 1 ORDER BY 2 DESC;
 ```
 
 ## Business intelligence (fluxspec)
-Analyzing promoted fields from business messages.
+Analyze promoted fields from business messages.
 
 ```sql
 -- Analyze transactions by BIN and calculate totals
@@ -49,13 +49,13 @@ GROUP BY 1, 2 ORDER BY total DESC;
 For DevOps and SREs requiring real-time dashboarding and alerting, **fluxrig** natively exposes metrics compatible with OpenTelemetry and Prometheus.
 
 ### Prometheus scraping
-If utilizing standard Prometheus scraping, you can extract core runtime telemetry (Goroutines, Memory, GC cycles) and Gear throughput.
+If you use standard Prometheus scraping, you can extract core runtime telemetry (Goroutines, Memory, GC cycles) and Gear throughput.
 
 Endpoint (Mixer & Rack):
 ```
 GET /metrics
 ```
-*Port is dependent on the configured API port (default 8090 for Mixer).*
+*The port depends on the configured API port (default 8090 for Mixer).*
 
 ### Key metrics to monitor
 * `flux.gear.messages_in`: Throughput capacity (entering gears).
@@ -71,7 +71,7 @@ GET /metrics
 ### Specialized logging: the TRACE level
 For deep protocol inspection and high-volume signal debugging, `fluxrig` implements a custom **`TRACE`** log level (`slog -8`).
 
-*   **Role**: Used for full bit-perfect dumps of incoming/outgoing payloads and complex dialect parsing results.
+*   **Role**: Use it for full bit-perfect dumps of incoming/outgoing payloads and complex dialect parsing results.
 *   **Usage**: Activate via the `--level trace` flag in the Rack or via the Mixer API.
 
 ```bash
@@ -80,16 +80,16 @@ fluxrig rack --level trace
 ```
 
 > [!CAUTION]
-> **Performance Impact**: Activating `TRACE` level on production high-frequency gears (e.g., 1000+ tps) can generate gigabytes of logs per minute. It should be used surgically for diagnostic sessions.
+> **Performance Impact**: Activating `TRACE` level on production high-frequency gears (e.g., 1000+ tps) can generate gigabytes of logs per minute. You should use it surgically for diagnostic sessions.
 
 ---
 
 ## OpenSearch analytics (enterprise tier)
 
-For high-volume Enterprise deployments, logs are indexed in **OpenSearch** for full-text search and complex aggregations.
+For high-volume Enterprise deployments, the system indexes logs in **OpenSearch** for full-text search and complex aggregations.
 
 ### Search patterns
-Using the OpenSearch DSL to find specific events.
+Use the OpenSearch DSL to find specific events.
 
 ```json
 {

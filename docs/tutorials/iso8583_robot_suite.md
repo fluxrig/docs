@@ -3,20 +3,20 @@ slug: /tutorials/iso8583_robot_suite
 title: Robot Framework Testing
 ---
 
-# Robot Framework Testing
+# Robot Framework testing
 
-This tutorial guides you through using the **fluxrig** integration for **[Robot Framework](https://robotframework.org/)** to build a complete validation and performance rig for mission-critical signal processing.
+This tutorial shows how to use the **fluxrig** integration for **[Robot Framework](https://robotframework.org/)** to build a validation and performance rig for mission-critical signal processing.
 
 > [!NOTE]
-> **Universal Applicability**: While this tutorial uses **ISO 8583** as its worked example, the **`fluxrigLibrary`** is a universal verification harness. It can be used to orchestrate and validate any gear, protocol, or business logic orchestrated by the platform.
+> **Universal applicability**: While this tutorial uses **ISO 8583** as its worked example, the **`fluxrigLibrary`** is a universal verification harness. You can use it to orchestrate and validate any gear, protocol, or business logic that the platform orchestrates.
 
 In the **fluxrig** ecosystem, testing is not an afterthought: it is a core engineering discipline. A **Verification Suite** is an automated playbook that:
 
-1.  **Orchestrates**: Launches the Mixer, Racks, and virtual Gears in a clean, isolated environment.
-2.  **Exercises**: Drives real protocol traffic (like ISO 8583) through the setup.
-3.  **Validates**: Asserts that the system meets sub-millisecond latency SLAs and functional correctness.
+1.  **Orchestrates**: Start the Mixer, Racks, and virtual Gears in a clean, isolated environment.
+2.  **Exercises**: Drive real protocol traffic (like ISO 8583) through the setup.
+3.  **Validates**: Assert that the system meets sub-millisecond latency SLAs and functional correctness.
 
-To guarantee technical fidelity, every code snippet in this tutorial is identical to the production source code found in `test/robot/suites/iso8583/server_validation.robot`.
+To guarantee technical fidelity, every code snippet in this tutorial matches the production source code in `test/robot/suites/iso8583/server_validation.robot`.
 
 ---
 
@@ -39,7 +39,7 @@ test/robot/
 
 ## Signal verification topology
 
-The standard ISO 8583 suite uses a loopback topology to verify system integrity without external dependencies:
+The standard ISO 8583 suite uses a loopback topology to validate system integrity without external dependencies:
 
 ```mermaid
 graph LR
@@ -68,7 +68,7 @@ graph LR
 
 ## Step 1: Setting up the suite
 
-Every Robot suite begins with a `*** Settings ***` block. We use the **`fluxrigLibrary`** to manage the lifecycle of our components.
+Every Robot suite starts with a `*** Settings ***` block. We use the **`fluxrigLibrary`** to manage the lifecycle of our components.
 
 ```robot
 # test/robot/suites/iso8583/server_validation.robot
@@ -84,13 +84,13 @@ Suite Teardown    Teardown Server Suite         #  Resource recovery
 ```
 
 > [!TIP]
-> **Institutional Security**: Under the hood, the suite execution keyword `Generate Cluster Key` bootstraps the internal PKI required for our **mTLS Snake Tunnel** security posture. This ensures we are testing a system-hardened environment from Step 1.
+> **Institutional security**: Under the hood, the suite execution keyword `Generate Cluster Key` bootstraps the internal PKI required for our **mTLS Snake Tunnel** security posture. This ensures we are testing a system-hardened environment from Step 1.
 
 ---
 
 ## Step 2: Functional verification tests
 
-Functional tests verify that specific protocol rules (MTI conversion, Field Mapping) are correctly enforced.
+Functional tests validate that the setup correctly enforces specific protocol rules (MTI conversion, Field Mapping).
 
 ```robot
 Server Loopback Validation (Functional)
@@ -147,27 +147,27 @@ The **`fluxrigLibrary`** automatically renders an interactive dashboard with rea
 | System Telemetry & Health | Baseline Performance (100 TPS) |
 | :--- | :--- |
 | ![Telemetry Detail](../assets/ms_latency_detail.png) | ![Baseline Metrics](../assets/baseline_metrics.png) |
-| *Deep dive into Rack vs. Gear vs. NATS overhead.* | *SLA verification and total message volume at standard load.* |
+| *Detail on Rack vs. Gear vs. NATS overhead.* | *SLA verification and total message volume at standard load.* |
 
-*   **Microsecond Precision**: You might see `0.00ms` for gear latency. This is an **SRE Badge of Honor**, it indicates the logic was executed within a single Go scheduler cycle, faster than the microsecond resolution of the OTel instrumentation.
-*   **System Telemetry**: Use the dashboard to isolate protocol jitter from networking overhead.
+*   **Microsecond precision**: You might see `0.00ms` for gear latency. This is an **SRE Badge of Honor**. It indicates the logic ran within a single Go scheduler cycle. It ran faster than the microsecond resolution of the OTel instrumentation.
+*   **System telemetry**: Use the dashboard to isolate protocol jitter from networking overhead.
 
 ---
 
 ## Step 5: How to run the suite
 
-To run this verification suite locally, navigate to the `test/robot` directory in the `fluxrig` source and use the standard Robot Framework CLI:
+To run this verification suite locally, open the `test/robot` directory in the `fluxrig` source. Use the standard Robot Framework CLI:
 
 ```bash
 # From ~/git/fluxrig/test/robot
 $ robot suites/iso8583/server_validation.robot
 ```
 
-The system will automatically spawn the Mixer and Rack, execute the tests, and generate a final `log.html` and a specialized `suite_performance_summary.html` carrying the run's measurements.
+The system automatically spawns the Mixer and Rack. It executes the tests. It generates a final `log.html` and a specialized `suite_performance_summary.html` with the run's measurements.
 
 ---
 
-## Step 6: CI/CD Quality Gates
+## Step 6: CI/CD quality gates
 
 In production environments, these Robot suites serve as **Quality Gates** in the CI/CD pipeline. A single performance regression (e.g., P99 drifting from 0.8ms to 1.5ms) should block a release.
 
@@ -178,6 +178,6 @@ $ if [ $? -ne 0 ]; then echo "Quality Gate Failed"; exit 1; fi
 ```
 
 > [!WARNING]
-> **Industrial Warning: Scheduler Jitter**
+> **Industrial warning: scheduler jitter**
 > 
-> While the target for P99 is often **`< 1ms`**, results on shared hardware will always show jitter. For authoritative **ISO 8583** benchmarks, the **Rack** and **Mixer** must be pinned to isolated CPU cores on a Real-Time Linux kernel to isolate protocol latency from OS scheduler noise.
+> While the target for P99 is often **`< 1ms`**, results on shared hardware will always show jitter. For authoritative **ISO 8583** benchmarks, pin the **Rack** and **Mixer** to isolated CPU cores. Use a Real-Time Linux kernel. This isolates protocol latency from OS scheduler noise.

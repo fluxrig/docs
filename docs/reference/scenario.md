@@ -5,7 +5,7 @@ title: Orchestration scenarios
 
 # Orchestration scenarios
 
-A **Scenario** is a declarative YAML file that defines the operational topology for the entire environment, which Gears run, how they connect, and what specs they reference.
+A **Scenario** is a declarative YAML file. It defines the operational topology for the entire environment: which Gears run, how they connect, and what specs they reference.
 
 ## Lifecycle
 
@@ -24,20 +24,20 @@ A **Scenario** is a declarative YAML file that defines the operational topology 
    fluxrig-mixer                             # Resume last active
    ```
 
-4. **Activate**, the Mixer validates, persists, and wires the scenario.
+4. **Activate**: the Mixer validates the scenario. It persists it. It wires it.
 
 ### Hot-reloading & rollbacks
 
 > [!IMPORTANT]
-> **Implementation Note**: Currently, applying a scenario update triggers a **full Gear Restart cycle**. All active gears are stopped and re-initialized with the new configuration. This introduces a sub-second processing gap and closes established I/O connections (e.g., TCP sessions). 
+> **Implementation note**: Currently, applying a scenario update triggers a **full Gear Restart cycle**. The system stops all active gears and re-initializes them with the new configuration. This introduces a sub-second processing gap and closes established I/O connections (e.g., TCP sessions). 
 
-**Future Roadmap**: Achieving true **Zero-Downtime Reload** (where unaffected gears continue processing while new configurations are swapped in) is a primary engineering objective for the **future milestone**.
+**Future Roadmap**: Achieving true **Zero-Downtime Reload** is a primary engineering objective for the **future milestone**. Unaffected gears continue processing while the system swaps in new configurations.
 
-If you import a broken scenario containing invalid wires or missing specs, the Mixer performs **pre-flight validation** and rejects the transition, ensuring the cluster remains on the last known good state.
+If you import a broken scenario with invalid wires or missing specs, the Mixer performs **pre-flight validation**. It rejects the transition. The cluster thus remains on the last known good state.
 
 ## Startup resolution
 
-When the Mixer starts, the `startup_scenario` reference is resolved using three strategies:
+When the Mixer starts, it resolves the `startup_scenario` reference with three strategies:
 
 | Reference Format | Example | Behavior |
 | :--- | :--- | :--- |
@@ -80,7 +80,7 @@ wires:
 ```
 
 > [!NOTE]
-> **Wires are unidirectional.** Each entry moves messages one way: from an **output** port (`from`) to an **input** port (`to`). External TCP sockets are bidirectional, but that duality ends at the I/O gear boundary: a request/response exchange always requires a **pair** of wires, one carrying requests away from the I/O gear's `out` port and one delivering responses back to its `in` port. See [the port model](../architecture/gear.md#the-port-model).
+> **Wires are unidirectional.** Each entry moves messages one way: from an **output** port (`from`) to an **input** port (`to`). External TCP sockets are bidirectional, but that duality ends at the I/O gear boundary. A request/response exchange always requires a **pair** of wires. One carries requests away from the I/O gear's `out` port. One delivers responses back to its `in` port. See [the port model](../architecture/gear.md#the-port-model).
 
 ## Labels the diagram reads
 
@@ -105,10 +105,10 @@ gears:
       bind: ":8583"
 ```
 
-Without `peer`, an I/O gear's counterparty is drawn as `External clients
+Without `peer`, the diagram shows an I/O gear's counterparty as `External clients
 (:8583)`, which describes a socket rather than who is on it. `peer_played_by` is
-for test topologies: a reader deciding whether a suite proves anything needs to
-know which participants are real and which are simulated, and that belongs on the
+for test topologies. A reader deciding whether a suite proves anything needs to
+know which participants are real and which are simulated. That belongs on the
 box rather than in prose elsewhere.
 
 ### Rendering the diagram
@@ -117,16 +117,16 @@ box rather than in prose elsewhere.
 [LikeC4](https://likec4.dev) model (specification, model and views) into `<dir>`.
 The view ids are stable: `index` for the whole scenario, `of_rack_<name>` for one
 Rack expanded, `gear_<name>` for a gear's neighbourhood. Point LikeC4 at the
-directory to render or export it. Because the model is generated from the same
+directory to render or export it. Because the command generates the model from the same
 YAML the Racks run, the diagram and the wiring cannot drift apart.
 
-Neither is needed when both ends are in the scenario. A client whose `connect`
-matches a server's `bind` is drawn as one relationship between those two gears,
+You need neither when both ends are in the scenario. The diagram draws a client whose `connect`
+matches a server's `bind` as one relationship between those two gears,
 with no external box on either side.
 
 ## Gear deployment
 
-The `gears` section defines which logic units are active and where they are executed.
+The `gears` section defines which logic units are active and where they run.
 
 ```yaml
 gears:
@@ -137,14 +137,14 @@ gears:
 
 ### Global gears
 
-If a gear does not specify a `deploy` target, it is treated as a **Global Gear**. 
+If a gear does not specify a `deploy` target, the system treats it as a **Global Gear**. 
 
-*   **Behavior**: The gear will be pushed to and executed by **every Rack** that connects to the Mixer and receives the scenario.
-*   **Use Case**: This is ideal for "Zero-Config" Getting Started scenarios or for deploying universal monitoring/diagnostic gears across a distributed cluster without knowing the dynamic Rack names in advance.
+*   **Behavior**: The Mixer pushes the gear to **every Rack** that connects to it and receives the scenario.
+*   **Use case**: Use this for "Zero-Config" Getting Started scenarios. Use it to deploy universal monitoring/diagnostic gears across a distributed cluster without knowing the dynamic Rack names in advance.
 
-A gear naming a `deploy` target is validated at activation: the target must
-exist as an active Rack in the registry, or activation fails naming it. Import
-stays permissive, so a scenario can be filed before its Racks enroll. A scenario
+The Mixer validates a gear that names a `deploy` target at activation. The target must
+exist as an active Rack in the registry. If not, activation fails. The failure names the target. Import
+stays permissive, so you can file a scenario before its Racks enroll. A scenario
 with no push targets activates into nothing, which the Mixer logs as a warning.
 
 ## Pipe configuration
@@ -152,7 +152,7 @@ with no push targets activates into nothing, which the Mixer logs as a warning.
 The `wires` (or `pipes`) section defines how data flows between Gears.
 
 > [!NOTE]
-> **Endpoint grammar.** A wire endpoint is `gear.port` (the rack is taken from the gear's `deploy`) or `rack.gear.port` (an explicit rack / replica instance). Every segment is dot-free (**port names use underscores for roles**, as in `in_reply` and `out_scheme_a`, never dots), so `a.b.c` is always `rack.gear.port`. A wire naming an undefined rack/gear, or a port a gear does not declare, is rejected at import. See [the port model](../architecture/gear.md#wire-endpoint-naming).
+> **Endpoint grammar.** A wire endpoint is `gear.port` (the system takes the rack from the gear's `deploy`) or `rack.gear.port` (an explicit rack / replica instance). Every segment is dot-free (**port names use underscores for roles**, as in `in_reply` and `out_scheme_a`, never dots), so `a.b.c` is always `rack.gear.port`. The Mixer rejects at import a wire that names an undefined rack/gear or a port that a gear does not declare. See [the port model](../architecture/gear.md#wire-endpoint-naming).
 
 ### Lanes
 
@@ -164,14 +164,14 @@ Each wire travels on one of two lanes. The optional `lane` field of a wire choos
 | `guaranteed` | Over the bus, the NATS JetStream server embedded in the Mixer, which stores each message before the emitting gear is told it was accepted. | Stored, encrypted at rest by default (see [data at rest](../architecture/security.md#data-at-rest-and-in-logs)). | Yes |
 | not set | `hot` when both gears run on the same Rack, `guaranteed` when they run on different Racks. | | |
 
-A wire between gears on different Racks is always on the guaranteed lane. A wire that asks for `hot` between gears on different Racks is rejected at import.
+A wire between gears on different Racks is always on the guaranteed lane. The Mixer rejects at import a wire that asks for `hot` between gears on different Racks.
 
-What the hot lane changes for an operator:
+The hot lane changes this for an operator:
 
-*   **Nothing rests on a disk.** A message on a hot wire, a card number included, is in the memory of the Rack and nowhere else. A wire that asks for `guaranteed` inside one Rack is stored on the Mixer.
-*   **It keeps running while the Mixer is away.** A hot wire needs no bus, so a flow that stays inside one Rack keeps processing when the Mixer is unreachable. See [A Rack without the Mixer](operations.md#a-rack-without-the-mixer).
-*   **A slow consumer slows the emitter.** Each hot wire holds `rack.lane_queue_size` messages (1024 by default). A gear that emits into a full queue waits `rack.lane_send_timeout` (5 seconds by default) and then gets an error, as it would from a bus that does not answer. Gears that hand messages to each other in a cycle can fill each other's queues, and the timeout is what turns that into an error and not a stall.
-*   **A stop that is asked to be graceful delivers what is queued**, within `rack.drain_timeout`. A crash does not.
+*   **Nothing rests on a disk**. A message on a hot wire, a card number included, is in the memory of the Rack and nowhere else. The Mixer stores a wire that asks for `guaranteed` inside one Rack.
+*   **It keeps running while the Mixer is away**. A hot wire needs no bus, so a flow that stays inside one Rack keeps processing when the Mixer is unreachable. See [A Rack without the Mixer](operations.md#a-rack-without-the-mixer).
+*   **A slow consumer slows the emitter.** Each hot wire holds `rack.lane_queue_size` messages (1024 by default). A gear that emits into a full queue waits `rack.lane_send_timeout` (5 seconds by default). It then gets an error, as it would from a bus that does not answer. Gears that hand messages to each other in a cycle can fill each other's queues. The timeout turns that into an error and not a stall.
+*   **A stop that you ask to be graceful delivers what the queue holds**, within `rack.drain_timeout`. A crash does not.
 
 ### Example: choosing a lane
 
@@ -189,11 +189,11 @@ wires:
 
 ## Versioning & storage
 
-Scenarios are stored in the same Content-Addressable Store (CAS) as Specs. Each imported scenario is:
+Scenarios live in the same Content-Addressable Store (CAS) as Specs. Each imported scenario is:
 
-- Hashed (SHA-256) and stored as an immutable blob.
-- Indexed under `name → tag → hash`.
-- Retrievable via `name:tag` or `sha256:hash`.
+- The system hashes it (SHA-256) and stores it as an immutable blob.
+- The system indexes it under `name → tag → hash`.
+- You can get it via `name:tag` or `sha256:hash`.
 
 The special tag `latest` resolves to the highest SemVer tag for a given name.
 

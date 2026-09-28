@@ -8,7 +8,7 @@ title: Data Architecture
 
 # Data architecture
 
-The **fluxrig** data architecture is designed for integrity in mission-critical environments. Every signal in the rig is self-describing, bit-perfect, and audit-ready.
+The **fluxrig** data architecture supports integrity in mission-critical environments. Every signal in the rig is self-describing, bit-perfect, and audit-ready.
 
 ## The signal: `fluxMsg`
 
@@ -44,15 +44,15 @@ For the full technical specification of the `fluxMsg` fields, system flags, and 
 
 To ensure data sovereignty and end-to-end auditability across thousands of distributed nodes, we implement a dual-track identity model.
 
-### flux_id (Transactional tracer)
-Every signal entering the rig is assigned a **`flux_id`**, a **128-bit, time-ordered unique identifier (UUID v7)**.
+### flux_id (transactional tracer)
+Every signal entering the rig receives a **`flux_id`**, a **128-bit, time-ordered unique identifier (UUID v7)**.
 
 *   **Standard**: **RFC 9562 (UUID v7)**.
 *   **Property**: Chronologically sortable (millisecond precision), globally unique, and optimized for native indexing in storage engines.
 *   **Role**: The primary key for telemetry joins, distributed traces, and audit archives.
 
-### entity_id (Persistent component identity)
-Components that require persistent identity (Racks, Gears, Scenarios) are assigned a **`entity_id`**.
+### entity_id (persistent component identity)
+Components that require persistent identity (Racks, Gears, Scenarios) receive an **`entity_id`**.
 
 *   **Structure**: A 128-bit UUID v7 that embeds the **EntityType** and a **machine_id Hint** for stateless traceability.
 *   **Role**: Provides immutable, human-interpretable identities for infrastructure components across their entire lifecycle.
@@ -63,27 +63,27 @@ Components that require persistent identity (Racks, Gears, Scenarios) are assign
 
 We strictly separate the **Tactical Structure** of a signal from its **Topological Path**.
 
-### fluxSpec (Logical schema)
+### fluxSpec (logical schema)
 Defined via the **Spec Definition Language (SDL)**, these schemas define the structure of external protocols (e.g., "ISO8583 Dialects").
 
 *   **Immutability**: Specs are stored in a **[Content-Addressable Store (CAS)](../reference/spec_manager.md#cas)** using **SHA-256** hashing. Any modification generates a new hash, preventing silent failures in the distributed data-plane.
 *   **Validation**: Every node in the fleet must re-verify the spec hash before executing logic on a new version.
 
-### Scenarios (Topological blueprint)
-The **Scenario** is the declarative blueprint of a pipeline. It defines the signal flow between Gears and is pushed as an immutable, signed artifact to the edge.
+### Scenarios (topological blueprint)
+The **Scenario** is the declarative blueprint of a pipeline. It defines the signal flow between Gears. The Mixer pushes it as an immutable, signed artifact to the edge.
 
 ---
 
 ## Sovereign persistence strategy
 
-Every Rack keeps its logs in a local write-ahead log, so they survive a connectivity failure and are shipped when the bus returns.
+Every Rack keeps its logs in a local write-ahead log. They therefore survive a connectivity failure. The Rack ships them when the bus returns.
 
-1.  **Log WAL**: Every log line a Rack produces is recorded to a local **Write-Ahead Log (WAL)** using binary storage, capped at `store.wal_max_size_mb`. Business messages are not written to it: they travel over the bus.
-2.  **Non-Intrusive Signal Tap**: Observability telemetry (Metrics/Traces) is "tapped" from the main execution path. This data is uploaded asynchronously, ensuring that observability never introduces latency to the business hot-path.
-3.  **Data Residency Sovereignty**: Detailed payloads (e.g., raw financial messages) can be configured to remain exclusively in the local edge vault while only high-level metadata reaches the central Mixer. 
+1.  **Log WAL**: The Rack records every log line it produces to a local **Write-Ahead Log (WAL)** using binary storage, capped at `store.wal_max_size_mb`. Business messages are not written to it: they travel over the bus.
+2.  **Non-Intrusive Signal Tap**: The Rack taps observability telemetry (Metrics/Traces) from the main execution path. It uploads this data asynchronously, so observability never adds latency to the business hot-path.
+3.  **Data Residency Sovereignty**: Detailed payloads (e.g., raw financial messages) can remain exclusively in the local edge vault. Only high-level metadata then reaches the central Mixer.
 
 > [!NOTE]
-> **Privacy Roadmap**: Advanced features like **Edge Tokenization** and **Deterministic Field Masking** (where sensitive fields are scrubbed natively within the Gear runtime) are currently in the **future roadmap**. In the current release, masking should be managed via custom Gear logic or the **[Bento Gear](../reference/gears/bento.md)**.
+> **Privacy roadmap**. **Edge Tokenization** and **Deterministic Field Masking** are currently in the **future roadmap**. They scrub sensitive fields natively within the Gear runtime. In the current release, manage masking with custom Gear logic. Use the **[Bento Gear](../reference/gears/bento.md)** as an alternative.
 
 ---
 

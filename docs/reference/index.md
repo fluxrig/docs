@@ -8,8 +8,8 @@ title: Technical reference
 
 # Technical reference
 
-Five sections, each with its own page listing what is in it. The split follows
-the question being asked, not the order things happen.
+Five sections describe the system. Each has its own page that lists what it contains. The split follows
+the question you ask, not the order in which things happen.
 
 | Section | Answers |
 | :--- | :--- |
@@ -19,21 +19,21 @@ the question being asked, not the order things happen.
 | **[Operations & analytics](/docs/reference/operations)** | Running the two processes, and reading what they report |
 | **[Development & QA](/docs/reference/development)** | Extending the platform, and proving it behaves |
 
-[Technical stack](./tech_stack.md) sits outside them: it is what fluxrig is built
+[Technical stack](./tech_stack.md) sits outside them: it is what fluxrig builds
 on, and the licence of each dependency.
 
 ## Where to start
 
-**Evaluating.** [Data model](./data_model.md) for what travels, then
-[Orchestration scenarios](./scenario.md) for how a node is composed. The
-[Gears catalog](/docs/reference/gears) says what can be composed.
+**Evaluating.** Read [Data model](./data_model.md) for what travels. Then read
+[Orchestration scenarios](./scenario.md) for how you compose a node. The
+[Gears catalog](/docs/reference/gears) says what you can compose.
 
 **Integrating a protocol.** [ISO8583 SDL](./specs/iso8583_sdl.md) describes a
-dialect, and [Protocol reference](./specs/protocol_reference.md) is the document
-rendered from one, which is what a counterparty reads.
+dialect. [Protocol reference](./specs/protocol_reference.md) is the document
+that you render from one, which is what a counterparty reads.
 
-**Running it.** [Operating fluxrig](./operations.md) covers both processes;
-[Platform configuration](./configuration.md) is every field and its default.
+**Running it.** [Operating fluxrig](./operations.md) covers both processes.
+[Platform configuration](./configuration.md) lists every field and its default.
 
 > [!TIP]
 > For the "Studio & Stage" thinking behind the naming, see

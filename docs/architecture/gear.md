@@ -8,7 +8,7 @@ title: Gear Architecture
 
 # Gear architecture
 
-**Gears** are the modular logic units of the **fluxrig** ecosystem. They function as pluggable processing modules that can be chained together to form complex, low-latency data pipelines.
+**Gears** are the modular logic units of the **fluxrig** ecosystem. They work as pluggable processing modules. Chains of them form complex, low-latency data pipelines.
 
 <LikeC4 project="concepts" view="pipeline" height={240} />
 
@@ -16,7 +16,7 @@ title: Gear Architecture
 
 ## Implementation models
 
-The architecture categorizes Gears based on their performance profile, security boundary, and deployment lifecycle.
+The architecture categorizes Gears by performance profile, security boundary, and deployment lifecycle.
 
 ### Native gear (compiled in)
 *   **Role**: **Hardware Interfacing & System Access**.
@@ -24,7 +24,7 @@ The architecture categorizes Gears based on their performance profile, security 
 *   **Implementation**: Written in **Go** and compiled directly into the **Rack** binary.
 *   **Stability**: Offers the lowest possible overhead and absolute memory safety.
 
-### Wasm gear (Pluggable / Agile)
+### Wasm gear (pluggable / agile)
 
 > [!NOTE]
 > **[Planned feature]**
@@ -34,7 +34,7 @@ The architecture categorizes Gears based on their performance profile, security 
 *   **Implementation**: Designed to execute **WebAssembly (Wasm)** via an embedded runtime.
 *   **Capabilities**: Sandboxed execution and "hot-reloadable" logic without process reboots.
 
-### Virtual gear (Remote / Centralized)
+### Virtual gear (remote / centralized)
 *   **Role**: **Global Orchestration**.
 *   **Use Case**: Logic that runs within the **Mixer** but is connected to a localized pipeline via secure tunnels.
 *   **Strategy**: Ideal for global registry lookups, long-running business workflows, or cross-cluster state synchronization.
@@ -43,17 +43,17 @@ The architecture categorizes Gears based on their performance profile, security 
 
 ## The port model
 
-Communication between Gears is strictly governed by **Ports**, standardized entry and exit points that enforce data integrity.
+Communication between Gears follows strict rules for **Ports**, standardized entry and exit points that enforce data integrity.
 
 ### Port anatomy
-Every Gear defines its interaction boundary via named ports:
+Every Gear defines its interaction boundary with named ports:
 
 1.  **Name**: Unique identifier (e.g., `in`, `out`, `err`).
-2.  **Direction**: `Input` (Sink) or `Output` (Source). A port carries traffic in exactly **one** direction, and a **Wire** always connects one output port to one input port. There are no bidirectional ports and no bidirectional wires.
+2.  **Direction**: `Input` (Sink) or `Output` (Source). A port carries traffic in exactly **one** direction. A **Wire** always connects one output port to one input port. There are no bidirectional ports and no bidirectional wires.
 3.  **Contract**: Defines the expected data format (e.g., `raw_bytes`, `parsed_payload`).
 
 > [!IMPORTANT]
-> **The external boundary is different.** Network connections (TCP/TLS sockets) are bidirectional, but they exist only at the outer edge of I/O gears. An I/O gear maps one bidirectional socket onto two unidirectional ports: bytes received from the socket are emitted on `out`; messages arriving on `in` are written to the socket. A request/response exchange with an external endpoint therefore uses **both ports of the same I/O gear**, connected by two separate wires: one carrying the request away, one bringing the response back. See the [ISO8583 I/O gear](../reference/gears/io_iso8583.md#architectural-signal-path) for the canonical diagram.
+> **The external boundary is different.** Network connections (TCP/TLS sockets) are bidirectional, but they exist only at the outer edge of I/O gears. An I/O gear maps one bidirectional socket onto two unidirectional ports: it emits bytes received from the socket on `out`. It writes messages arriving on `in` to the socket. A request/response exchange with an external endpoint therefore uses **both ports of the same I/O gear** with two separate wires: one carries the request away. One brings the response back. See the [ISO8583 I/O gear](../reference/gears/io_iso8583.md#architectural-signal-path) for the canonical diagram.
 
 ### Dynamic ports
 Ports can be allocated at **Configuration Time** to support complex routing topologies.
@@ -66,37 +66,37 @@ Ports can be allocated at **Configuration Time** to support complex routing topo
 
 ### Wire endpoint naming
 
-A **Wire** endpoint is dot-separated, and **every segment is a single token that may not contain a dot.** Dots are pure level separators, so the level is unambiguous by segment count:
+A **Wire** endpoint uses dots as separators. **Every segment is a single token that carries no dot.** Dots serve only as level separators, so the segment count shows the level without ambiguity:
 
 | Endpoint | Rack | Gear | Port |
 | :--- | :--- | :--- | :--- |
 | `iso-inbound.out` | *(from the gear's `deploy`)* | `iso-inbound` | `out` |
 | `worker-a.restore.out` | `worker-a` | `restore` | `out` |
 
-- **`gear.port`**: the rack is resolved from the gear's `deploy` target. This is the everyday form; wires stay placement-agnostic (move a gear to another rack by changing one `deploy:` line, no wire edits).
+- **`gear.port`**: the rack resolves from the gear's `deploy` target. This is the everyday form. Wires stay placement-agnostic (move a gear to another rack by changing one `deploy:` line, no wire edits).
 - **`rack.gear.port`**: an explicit rack or replica instance, for cross-rack wiring and horizontal replication.
 
 Naming rules, enforced at import:
 
-- **Port names carry no dots.** Roles and fan-out use underscores instead: `in_reply`, `out_scheme_a`, `out_response_west`. This is what keeps `a.b.c` unambiguously `rack.gear.port` rather than a gear with a dotted port.
-- Every segment (rack, gear, port) is lowercase `[a-z0-9_-]+`, **non-empty** (no leading, trailing, or doubled dots).
+- **Port names carry no dots.** Roles and fan-out use underscores instead: `in_reply`, `out_scheme_a`, `out_response_west`. This keeps `a.b.c` unambiguously `rack.gear.port` rather than a gear with a dotted port.
+- Every segment (rack, gear, port) uses lowercase `[a-z0-9_-]+`. Every segment is **non-empty** (no leading, trailing, or doubled dots).
 
 > [!IMPORTANT]
-> **Inconsistencies fail loud at import, not silently at runtime.** The Mixer's pre-flight validation rejects a scenario whose wire names a rack or gear that is not defined, or (for a gear with an explicit `ports` block) references a port the gear does not declare. Without this check such a wire would subscribe to a subject nobody publishes to, and the pipeline would stall with no error.
+> **Inconsistencies fail loud at import, not silently at runtime**. The Mixer pre-flight validation rejects a scenario with a wire that names a rack or gear that is not defined. It also rejects a wire that references a port the gear does not declare. This applies to a gear with an explicit `ports` block. Without this check such a wire would subscribe to a subject that nobody publishes to. The pipeline would then stall with no error.
 
 ---
 
-## Execution modes: Active vs. Passive
+## Execution modes: active vs. passive
  
  Gears operate in two primary execution modes depending on their role in the pipeline.
  
- ### Passive mode (Reactive)
+ ### Passive mode (reactive)
  *   **Pattern**: **Consumer**.
  *   **Hook**: **`Process`**.
- *   **Behavior**: The gear remains idle until a message arrives via a **Wire**. It transforms or validates the data and returns a response.
+ *   **Behavior**: The gear remains idle until a message arrives via a **Wire**. It transforms or checks the data and returns a response.
  *   **Example**: A Codec Gear converting JSON to ISO8583.
  
- ### Active mode (Proactive)
+ ### Active mode (proactive)
  *   **Pattern**: **Source / Background Worker**.
  *   **Hook**: **`Start`**.
  *   **Behavior**: The gear spawns its own internal goroutines to execute logic continuously. It can inject messages into the pipeline using the `emit` function.
@@ -107,7 +107,7 @@ Naming rules, enforced at import:
 
 ## Gear lifecycle
 
-To ensure deterministic behavior and simplified troubleshooting, Gears adhere to a standardized lifecycle contract managed by the Rack supervisor:
+To ensure deterministic behavior and simplified troubleshooting, Gears follow a standardized lifecycle contract. The Rack supervisor manages it:
 
 | Hook | Description |
 | :--- | :--- |
@@ -121,8 +121,8 @@ To ensure deterministic behavior and simplified troubleshooting, Gears adhere to
 
 ## Native observability
 
-Gears are observable by default, with telemetry collected from the execution path:
+Gears are observable by default. The Rack collects telemetry from the execution path:
 
 *   **Non-Intrusive Tracing**: Every logic execution is automatically wrapped in an **OpenTelemetry span** without manual instrumentation.
 *   **Performance Metrics**: Throughput (`mps`) and processing latency (`μs`) are exposed via the Rack's embedded exporter.
-*   **Error Correlation**: Gear-level failures are captured and linked to the active `trace_id` for rapid root-cause analysis.
+*   **Error Correlation**: The Rack captures Gear-level failures. It links them to the active `trace_id` for rapid root-cause analysis.

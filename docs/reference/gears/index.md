@@ -10,13 +10,13 @@ This catalog details the modular processing units available in the **fluxrig** e
 ## Native built-ins
 These gears are mature, optimized, and available for production use in the current core release.
 
-*   **[Bento gear](bento.md)**: Universal I/O using the mature Bento engine (Pure Logic + Local I/O in the standard binary; institutional connectors via custom build).
+*   **[Bento gear](bento.md)**: Universal I/O using the mature Bento engine. The standard binary carries Pure Logic and Local I/O. Institutional connectors need a custom build.
 *   **[ISO8583 I/O gear](io_iso8583.md)**: TCP socket with length-prefixed framing.
 *   **[TCP I/O gear](io_tcp.md)**: Generic TCP I/O with delimiter-based framing (ingress/egress).
 *   **[ISO8583 codec gear](codec_iso8583.md)**: Standardized parser for ISO8583 financial dialects.
 *   **[Coat Check gear](coatcheck.md)**: Implements the "detached state" pattern for asynchronous correlation.
-*   **[Wasm logic gear](wasm_logic.md)**: User-defined logic extensions via WebAssembly (Filter role available today; polyglot source gears are roadmap).
-*   **[Conductor gear](conductor.md)**: Transaction switching, connection routing plus reply correlation over the valet ticket store; generalizes the Coat Check.
+*   **[Wasm logic gear](wasm_logic.md)**: User-defined logic extensions via WebAssembly. The Filter role is available today. Polyglot source gears are roadmap.
+*   **[Conductor gear](conductor.md)**: Transaction switching, connection routing plus reply correlation over the valet ticket store. It generalizes the Coat Check.
 
 ## Roadmap
 These gears are currently in the **Architectural Proposal** or **Early Beta** phase.

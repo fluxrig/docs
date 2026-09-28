@@ -44,10 +44,11 @@ This roadmap outlines the strategic direction for **fluxrig**. It defines the jo
 | v0.7.x | Delivered | Payment Switching | Conductor gear: connection routing + reply correlation over the valet ticket store, gear manifests, and native ISO 8583 TLS/mTLS. |
 | v0.8.x | Delivered | EMV Chip Data | BER-TLV composite parsing, with tags the spec does not declare carried through untouched. |
 | v0.9.x | Delivered | Enrichment & Correlation | Enrichment from outside the message under a hard deadline, and correlation keys that survive a bus hop. |
-| v0.10.x | Active | The Semantic Layer | A protocol spec states its rules and the codec enforces them: per-message field usage, conditions, value domains and cross-field checks, plus a protocol reference generated from the spec. |
+| v0.10.x | Delivered | The Semantic Layer | A protocol spec states its rules and the codec enforces them: per-message field usage, conditions, value domains and cross-field checks, plus a protocol reference generated from the spec. |
+| v0.11.x | Delivered | Store Encryption & Enterprise Gears | The message store is encrypted at rest, wires choose a lane (hot or guaranteed), and the first licensed enterprise gears ship alongside the core release. |
 | Future | Planned | Differential Analysis | Correlator gear: parallel shadow mastering and reconciliation against the immutable archives. |
-| Future | Planned | Guaranteed Local Lane | Rack operation without the Mixer, continued: a NATS leaf node in each Rack keeps guaranteed delivery on disk, with retention limits and durable delivery between Racks. |
-| Future | Planned | Hardened Integrity | Forensic analytics (DuckLake), at-rest encryption for persistent stores, durable ticket store (`local_durable`), per-destination circuit breaker, and peer heartbeats. |
+| Future | Planned | Guaranteed Local Lane | A NATS leaf node in each Rack keeps guaranteed delivery on disk when the Mixer is unreachable, with retention limits and durable delivery between Racks. |
+| Future | Planned | Hardened Integrity | Forensic analytics (DuckLake), at-rest encryption for the Mixer's analytics database (DuckDB and Parquet), durable ticket store (`local_durable`), per-destination circuit breaker, and peer heartbeats. |
 
 ## Phase 5: enterprise control
 

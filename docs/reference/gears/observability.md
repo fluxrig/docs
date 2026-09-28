@@ -12,13 +12,13 @@ excerpt: Gears responsible for egressing telemetry and logs to external backends
 
 > [!WARNING]
 > **Status: [Roadmap]**. The dedicated `log_shipper` and `metrics_exporter` Native Gears are slated for upcoming releases. 
-Currently, observability is handled monolithically within the Mixer's core architecture. This document outlines the planned disaggregation of telemetry pipelines into individual gears.
+Currently, the Mixer's core architecture handles observability monolithically. This document outlines the planned disaggregation of telemetry pipelines into individual gears.
 
-As **fluxrig** scales to handle enterprise data volumes, the responsibility of shipping telemetry (traces, metrics, and logs) to external providers (like Elasticsearch, Datadog, or ClickHouse) will be delegated to specific **Native Observability Gears**.
+As **fluxrig** scales to handle enterprise data volumes, specific **Native Observability Gears** will take over one responsibility. They will ship telemetry (traces, metrics, and logs) to external providers (like Elasticsearch, Datadog, or ClickHouse).
 
 ## Motivation
 
-Currently, the Mixer implements only the Embedded (DuckDB and Parquet) observability tier; the Standard and Enterprise tiers are roadmap. However, by transforming these export pipelines into autonomous Native Gears, we gain:
+Currently, the Mixer implements only the Embedded (DuckDB and Parquet) observability tier. The Standard and Enterprise tiers are roadmap. However, by transforming these export pipelines into autonomous Native Gears, we gain:
 
 *   **Decoupling**: Disconnecting the Mixer's critical Control Plane responsibilities from Data Plane telemetry egress.
 *   **Resilience**: Using NATS JetStream as a durable buffer, an Observability Gear can handle external database outages without blocking cluster operations.

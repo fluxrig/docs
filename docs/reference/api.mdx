@@ -12,11 +12,11 @@ The **Mixer REST API** provides a programmatic interface for external orchestrat
 
 ## Purpose
 
-While the **Data Plane** (Hot Path) operates exclusively over **NATS JetStream** for extreme performance, the **Control Plane** exposes this REST API for:
+While the **Data Plane** (Hot Path) operates exclusively over **NATS JetStream** for performance, the **Control Plane** exposes this REST API for:
 
-1.  **Observability**: Querying the status of connected racks.
-2.  **Fleet management**: Approving pending racks (zero config) and rotating keys.
-3.  **Deployment**: Pushing new configurations or Wasm gears to specific racks.
+1.  **Observability**: Query the status of connected racks.
+2.  **Fleet management**: Approve pending racks (zero config) and rotate keys.
+3.  **Deployment**: Push new configurations or Wasm gears to specific racks.
 
 > **Note**: The `fluxrig` CLI uses this API for management commands (e.g., `fluxrig admin racks list`, `fluxrig admin racks approve`).
 

@@ -5,7 +5,7 @@ title: CLI reference
 
 # CLI reference
 
-The **Command Line Interface (CLI)** is the primary orchestration tool for the **fluxrig** ecosystem. It provides a unified, static binary interface for managing the entire lifecycle of distributed infrastructure (from key generation and node registration to real-time telemetry exploration).
+The **Command Line Interface (CLI)** is the primary orchestration tool for the **fluxrig** ecosystem. It provides a unified, static binary interface to manage the entire lifecycle of distributed infrastructure. Use it to generate keys, register nodes, and explore telemetry in real time.
 
 ## fluxrig (static binary)
 The unified tool for operators and edge runtimes.
@@ -64,13 +64,18 @@ fluxrig wasm import my_logic.wasm
 | `fluxrig admin racks shutdown <id>` | Gracefully shutdown a Rack edge node |
 | `fluxrig admin racks set-log-level <id> <level>` | Set log level (debug/info/warn/error) |
 
-**Common Flag**:
+**Common Flags**:
 
 - `--api-url` - Mixer API URL (default: `http://localhost:8090`)
+- `--api-token` - Bearer token for the Mixer API, or set `FLUXRIG_API_TOKEN`. Required unless the Mixer runs with `api.auth_disabled_dangerously`.
+
+`suspend`, `activate`, `remove` and `shutdown` prompt for confirmation before
+running. Pass `--force` (`-f`) to skip the prompt, which a script must do
+since it has no terminal to answer from.
 
 ### Spec management (registry)
 
-Specs are governed via a [Content-Addressable Store (CAS)](spec_manager.md#cas).
+Specs are governed by a [Content-Addressable Store (CAS)](spec_manager.md#cas).
 
 | Command | Description |
 |---------|-------------|
@@ -89,8 +94,8 @@ fluxrig spec history iso8583-v87-ascii
 
 **Flags for `import`**:
 
-- `--name` - Logical name (e.g., `visa`). Omitted, it comes from `spec.id`.
-- `--tag` - Semantic version (e.g., `v1.0.0`). Omitted, it comes from `spec.version`.
+- `--name` - Logical name (e.g., `visa`). If you omit it, it comes from `spec.id`.
+- `--tag` - Semantic version (e.g., `v1.0.0`). If you omit it, it comes from `spec.version`.
 - `--store-dir` - CAS store location (default: `~/.fluxrig/store`)
 
 **Flags for `list` and `history`**:
@@ -100,27 +105,27 @@ fluxrig spec history iso8583-v87-ascii
 #### Rendering the protocol reference
 
 `fluxrig spec doc` renders what a spec says about its protocol: the messages,
-what each one carries, and what every data element means. It is derived on each
-render, so it cannot fall behind the spec.
+what each one carries, and what every data element means. The command derives the document on each
+render, so the document cannot fall behind the spec.
 
 ```bash
 fluxrig spec doc examples/specs/iso8583-v87-ascii.yaml --format html --out reference.html
 ```
 
 - `--format` - `markdown` (default) for a repository or a docs site, `html` for a
-  page that is read, printed or saved as a PDF. The HTML is self-contained: no
-  scripts, stylesheets or fonts are fetched, so it works offline.
+  page that you read, print or save as a PDF. The HTML is self-contained: it fetches no
+  scripts, stylesheets or fonts, so it works offline.
 - `--scope` - `public` (default) omits fields the spec marks `scope: private` and
-  says how many it withheld; `complete` carries everything. Only the public
+  says how many it withheld. `complete` carries everything. Only the public
   variant is eligible for publication.
 - `--out` - Output file. Defaults to stdout.
 - `--title` - Heading. Defaults to the spec's own name.
 
-The spec is loaded before it is rendered, so one that does not resolve fails
+The command loads the spec before it renders the spec, so one that does not resolve fails
 here.
 
 [Protocol reference](./specs/protocol_reference.md) explains what the document
-contains and what a spec has to say for it to be worth reading, and links a
+contains and what a spec has to say for it to be worth reading. It links a
 rendered example.
 
 The Mixer serves the same document for a spec in its store. See
@@ -136,7 +141,7 @@ The Mixer serves the same document for a spec in its store. See
 
 ### Scenario management (simulation)
 
-Scenarios define the operational topology used for testing and simulation. They can be imported into the CAS or executed directly as a standalone test runner.
+Scenarios define the operational topology used for testing and simulation. You can import them into the CAS or execute them directly as a standalone test runner.
 
 | Command | Description |
 |---------|-------------|
@@ -167,8 +172,8 @@ fluxrig scenario diff main.yaml
 fluxrig scenario viz payment_flow.yaml
 ```
 
-Generates a LikeC4 model from the scenario, for interactive drill-down and
-topology validation. The output is plain text; view it with the `likec4` CLI.
+The command generates a LikeC4 model from the scenario, for interactive drill-down and
+topology validation. The output is plain text. View it with the `likec4` CLI.
 
 ### Operations & simulation examples
 
@@ -194,18 +199,20 @@ fluxrig scenario run visa-cert:v2.1.0 --target https://my-rack:8583
 | `fluxrig configuration` | Show the runtime configuration for Mixers and Racks |
 | `fluxrig check` | Verify connectivity to the bus, the Mixer API and local storage |
 
-**Logs Flags**:
+**Logs flags**:
 
 - `--api-url` - Mixer API URL (default: `http://localhost:8090`)
+- `--api-token` - Bearer token for the Mixer API, or set `FLUXRIG_API_TOKEN`. Required unless the Mixer runs with `api.auth_disabled_dangerously`.
 - `--limit` - Max records (default: 50)
 - `--since` - Start time (e.g., `1h`)
 - `--until` - End time (ISO timestamp)
 - `--min-level` - Filter by level (TRACE, DEBUG, INFO, WARN, ERROR)
 - `--entity` - Filter by entity name
 
-**Metrics Flags**:
+**Metrics flags**:
 
 - `--api-url` - Mixer API URL (default: `http://localhost:8090`)
+- `--api-token` - Bearer token for the Mixer API, or set `FLUXRIG_API_TOKEN`. Required unless the Mixer runs with `api.auth_disabled_dangerously`.
 - `--limit` - Max records (default: 50)
 - `--since` - Start time
 - `--until` - End time
@@ -214,11 +221,11 @@ fluxrig scenario run visa-cert:v2.1.0 --target https://my-rack:8583
 
 ### Observability query examples
 
-Use these patterns to bridge the gap between business flows and system traces:
+Use these patterns to link business flows and system traces:
 
 > `fluxrig trace <flux_id>`, to follow one business flow across every Rack, is
-> **[Roadmap]**. Until it exists, a flow is followed by querying its `flux_id`
-> through the commands below.
+> **[Roadmap]**. Until it exists, follow a flow by querying its `flux_id`
+> with the commands below.
 
 ```bash
 # View recent errors for a specific payment Gear
@@ -241,7 +248,7 @@ fluxrig metrics --name flux.bus.messages_in
 The orchestration server (requires CGO for DuckDB).
 
 ### `fluxrig-mixer`
-Starts the Mixer server.
+Start the Mixer server.
 
 ```bash
 fluxrig-mixer --config fluxrig-mixer.toml --scenario scenario_01.yaml
@@ -250,10 +257,10 @@ fluxrig-mixer --config fluxrig-mixer.toml --scenario scenario_01.yaml
 **Flags**:
 
 - `-c, --config` - Path to TOML configuration file (default: `fluxrig-mixer.toml` or `FLUXRIG_CONFIG`)
-- `-s, --scenario` - Scenario reference to load on startup: file path (`./scenario.yaml`) or stored URN (`payment-flow:v1.0.0`). Empty to resume last active.
-- `--auto-adopt` - Automatically approve and adopt any new Rack that connects. **For development use only.**
+- `-s, --scenario` - Scenario reference to load on startup: file path (`./scenario.yaml`) or stored URN (`payment-flow:v1.0.0`). If empty, the Mixer resumes the last active scenario.
+- `--auto-adopt` - The Mixer automatically approves and adopts any new Rack that connects. **For development use only.**
 
-**Key Configuration Settings** (`[mixer]`):
+**Key configuration settings** (`[mixer]`):
 
 - `api.port` - REST API port (default: `8090`)
 - `mixer.data_dir` - Data directory (default: `./data`)
