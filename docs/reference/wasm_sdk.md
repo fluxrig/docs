@@ -3,26 +3,26 @@ slug: /reference/development/wasm-sdk
 title: Wasm SDK contract
 ---
 
-# WebAssembly SDK Contract
+# WebAssembly SDK contract
 
-This document defines the Application Binary Interface (ABI) and host capabilities required to build a custom `fluxrig` WebAssembly (Wasm) Gear. Because fluxrig relies on a language-agnostic Wasm execution environment ([Wazero](https://wazero.io/)), you can author your business logic in any language that compiles to `wasm32-freestanding` or `wasm32-wasi` (e.g., Zig, Rust, C++, Go, AssemblyScript) by adhering to this contract.
+This document defines the Application Binary Interface (ABI) and host capabilities that you need to build a custom `fluxrig` WebAssembly (Wasm) Gear. fluxrig relies on a language-agnostic Wasm execution environment ([Wazero](https://wazero.io/)). You can author your business logic in any language that compiles to `wasm32-freestanding` or `wasm32-wasi`. Examples are Zig, Rust, C++, Go, and AssemblyScript. Adhere to this contract.
 
-## Filter Architecture & Implicit Ports
+## Filter architecture & implicit ports
 
 > [!NOTE]
-> **Current Topology Role**: The Wasm gear is currently implemented strictly as a **Filter** gear (1-to-1 or 1-to-0). It is designed to receive exactly one input message, process it synchronously, and return exactly one output message (or drop it).
+> **Current topology role**: The project currently implements the Wasm gear strictly as a **Filter** gear (1-to-1 or 1-to-0). It receives exactly one input message, processes it synchronously, and returns exactly one output message (or drops it).
 
 Because of this strict filter pattern, the Wasm gear uses **implicit ports**. You do not need to define a `ports` block in its configuration.
 - **Input (`.in`)**: The router automatically routes incoming messages to the gear's `.in` port, which triggers the Wasm `process()` function.
-- **Output (`.out`)**: The result returned by `process()` is automatically emitted on the `.out` port.
+- **Output (`.out`)**: The gear automatically emits the result that `process()` returns on the `.out` port.
 
-*(Support for Source/Split Wasm gears that generate spontaneous messages via `env.emit` is planned for a future release).*
+*(The project plans support for Source/Split Wasm gears that generate spontaneous messages via `env.emit` for a future release).*
 
-## The Memory Interface
+## The memory interface
 
 WebAssembly restricts execution to an isolated linear memory sandbox. To pass data between the `fluxrig` host (the Rack) and the Wasm guest (your Gear), you must export basic memory allocation functions.
 
-### Required Exports
+### Required exports
 
 Your Wasm module **must** export the following three functions:
 
@@ -30,32 +30,32 @@ Your Wasm module **must** export the following three functions:
 ```text
 alloc(len: i32) -> i32
 ```
-Called by the host to allocate memory inside the guest's linear memory.
-- **`len`**: The number of bytes to allocate.
-- **Returns**: An `i32` pointer to the allocated memory block.
+The host calls it to allocate memory inside the guest's linear memory.
+- **`len`**: The number of bytes the guest allocates.
+- **Returns**: It returns an `i32` pointer to the allocated memory block.
 
 #### `free`
 ```text
 free(ptr: i32, len: i32)
 ```
-Called by the host to free memory previously allocated by the guest.
-- **`ptr`**: The starting pointer of the memory block.
-- **`len`**: The length of the memory block in bytes.
+The host calls it to free memory that the guest previously allocated.
+- **`ptr`**: It gives the starting pointer of the memory block.
+- **`len`**: It gives the length of the memory block in bytes.
 
 #### `process`
 ```text
 process(ptr: i32, len: i32) -> i64
 ```
-The main execution entrypoint. Called by the host when a new message arrives at the Gear.
-- **`ptr`**: A pointer to the CBOR-encoded `fluxMsg` payload (already written to guest memory by the host).
-- **`len`**: The length of the CBOR payload in bytes.
-- **Returns**: A packed 64-bit integer (`i64`). The host uses bitwise shifting to unpack this into two 32-bit integers:
-  - **High 32 bits**: The return pointer to the modified CBOR payload.
-  - **Low 32 bits**: The return length of the modified payload.
+The main execution entrypoint. The host calls it when a new message arrives at the Gear.
+- **`ptr`**: A pointer to the CBOR-encoded `fluxMsg` payload that the host already wrote to guest memory.
+- **`len`**: It gives the length of the CBOR payload in bytes.
+- **Returns**: It returns a packed 64-bit integer (`i64`). The host uses bitwise shifting to unpack this into two 32-bit integers:
+  - **High 32 bits**: It gives the return pointer to the modified CBOR payload.
+  - **Low 32 bits**: It gives the return length of the modified payload.
 
 If you wish to drop a message, return `0`. 
 
-## Host Imports (Capabilities)
+## Host imports (capabilities)
 
 To interact with the host system (e.g., logging or state access), the host exposes a set of functions under the `env` namespace. You must import these explicitly in your language.
 
@@ -63,22 +63,22 @@ To interact with the host system (e.g., logging or state access), the host expos
 ```text
 env.log(level: i32, ptr: i32, len: i32)
 ```
-Emits a structured log message to the Rack's central telemetry stream.
-- **`level`**: The severity level (e.g., `1`=Debug, `2`=Info, `3`=Warn, `4`=Error).
-- **`ptr`**: Pointer to the UTF-8 encoded log message.
-- **`len`**: Length of the log message.
+It emits a structured log message to the Rack's central telemetry stream.
+- **`level`**: It gives the severity level (e.g., `1`=Debug, `2`=Info, `3`=Warn, `4`=Error).
+- **`ptr`**: It gives the pointer to the UTF-8 encoded log message.
+- **`len`**: It gives the length of the log message.
 
 ### `env.emit` [Roadmap / Future]
 ```text
 env.emit(ptr: i32, len: i32)
 ```
-*(Planned for a future release)*. Allows the Wasm gear to spontaneously generate new messages or split a single message into multiple messages (Fan-out). The Wasm module allocates memory, writes the CBOR payload, and calls `env.emit`. The host reads the memory and pushes the message to the wire asynchronously.
+*(The project plans it for a future release)*. It allows the Wasm gear to spontaneously generate new messages or split a single message into multiple messages (Fan-out). The Wasm module allocates memory, writes the CBOR payload, and calls `env.emit`. The host reads the memory and pushes the message to the wire asynchronously.
 
-*(Future capabilities like `flux_kv_get` or `flux_req_http` will also be exposed under the `env` module, governed by scenario-level permissions).*
+*(The host will also expose future capabilities like `flux_kv_get` or `flux_req_http` under the `env` module, and scenario-level permissions will govern them).*
 
-## Signal Format (CBOR)
+## Signal format (CBOR)
 
-For extreme performance, the `fluxrig` host does not pass strings or JSON. Input payloads are **CBOR encoded** (RFC 8949) representations of the `fluxMsg` struct.
+For performance, the `fluxrig` host does not pass strings or JSON. Input payloads are **CBOR encoded** (RFC 8949) representations of the `fluxMsg` struct.
 
 Your module must:
 1. Decode the CBOR payload from the input pointer.
@@ -87,7 +87,7 @@ Your module must:
 4. Allocate space for the new CBOR data.
 5. Return the packed pointer/length.
 
-## Memory Lifecycle
+## Memory lifecycle
 
 1. **Host receives a message** on the bus.
 2. **Host calls `alloc(len)`** on the guest to reserve space.

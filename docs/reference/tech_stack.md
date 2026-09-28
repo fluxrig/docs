@@ -8,19 +8,19 @@ title: Technical stack
 
 # Technical stack
 
-Every dependency below is permissively licensed (Apache 2.0, MIT, BSD, ISC or MPL-2.0), which is a constraint this project holds rather than a preference: a copyleft dependency would reach the Apache 2.0 codebase.
+The project licenses every dependency below permissively (Apache 2.0, MIT, BSD, ISC or MPL-2.0). This is a constraint this project holds rather than a preference. A copyleft dependency would reach the Apache 2.0 codebase.
 
-> **Stand on the Shoulders of Giants**: **fluxrig** is proudly built upon the open source ecosystem. The projects below do the work this one is built on, and the communities maintaining them deserve the credit for it.
+> **Stand on the Shoulders of Giants**: **fluxrig** builds upon the open source ecosystem. The projects below do the work this one builds on, and the communities that maintain them deserve the credit for it.
 
 ## Mixer & Rack (OSS)
 *   **Language**: [Go (golang) 1.26+](https://go.dev/)
-    - **Stability policy**: We adhere to the **level n version policy** (bleeding edge). We track the latest stable Go release.
-    - **Rationale**: To support modern integrations (e.g., bento, Wasm) and leverage cutting-edge ergonomics (iterators), we accept the trade-off of being on the latest release.
-    - **Deployment targets**: the **Rack** is pure Go and builds fully static with `CGO_ENABLED=0`, so it ships as a native Linux executable or in a `scratch` container. The **Mixer** requires **CGO** (the embedded DuckDB store), so it cannot be built with `CGO_ENABLED=0`.
+    - **Stability policy**: We adhere to the **level n version policy** (latest). We track the latest stable Go release.
+    - **Rationale**: To support modern integrations (e.g., bento, Wasm) and use ergonomics (iterators), we accept the trade-off of using the latest release.
+    - **Deployment targets**: the **Rack** is pure Go and builds fully static with `CGO_ENABLED=0`. It ships as a native Linux executable or in a `scratch` container. The **Mixer** requires **CGO** (the embedded DuckDB store), so do not build it with `CGO_ENABLED=0`.
 
 ### Rack build variants
 
-The Rack ships in two variants. Binaries are stripped (`-ldflags "-w -s"`); sizes below are measured on the current release:
+The Rack ships in two variants. The build strips binaries (`-ldflags "-w -s"`). Sizes below reflect the current release:
 
 | Variant | Build | Size | Contents |
 | :--- | :--- | :--- | :--- |
@@ -29,30 +29,30 @@ The Rack ships in two variants. Binaries are stripped (`-ldflags "-w -s"`); size
 
 The `bento` gear accounts for **14 MB (~43%)** of the full Rack, because it links Bento's engine plus protobuf, cue, avro and gojq transitively. Deployments that do not use `type: bento` can drop all of it with the lean build.
 
-The tag also decides the licences in the binary. Bento reaches `hashicorp/golang-lru`, the only Mozilla Public License code in either binary; a lean build links 61 modules and every one of them is permissive.
+The tag also decides the licences in the binary. Bento reaches `hashicorp/golang-lru`, the only Mozilla Public License code in either binary. A lean build links 61 modules and every one of them is permissive.
 
 > [!IMPORTANT]
 > On a lean Rack, a scenario declaring `type: bento` fails at activation with `unknown gear type: bento`. This is deliberate and loud, rather than a silent no-op. Use `make build-all-variants` to produce both, and check which variant a binary is by the gear types it registers.
 
-The **Mixer** is **105 MB**, dominated by the statically linked DuckDB engine, and **91 MB** with `-tags nobento`. It does link the gear factory, so the tag applies to it as well.
+The **Mixer** is **105 MB** and **91 MB** with `-tags nobento`. The statically linked DuckDB engine accounts for most of it. It does link the gear factory, so the tag applies to it as well.
 
 *   **Orchestration**: [Temporal.io](https://temporal.io/) (Go SDK) - **[Roadmap]**, for durable long-running business workflows. Scenario orchestration today is NATS subject-push from the Mixer, with no Temporal dependency.
 *   **Wasm sandbox**: **[Roadmap]** Secure, polyglot execution of custom business logic in Rust, Go, or TypeScript. (The Wasm *filter* gear itself is already available, see the gear runtime below.)
 
-*   **ISO8583 library**: [Moov-io/iso8583](https://github.com/moov-io/iso8583) (apache 2.0) - core parsing engine (used in both native core and Wasm gears).
+*   **ISO8583 library**: [Moov-io/iso8583](https://github.com/moov-io/iso8583) (apache 2.0) - core parsing engine that both the native core and Wasm gears use.
 *   **API architecture**: [cbor](https://cbor.org/) (data plane) + [Rest](https://restfulapi.net/) (control plane).
     - **Interface definition**: Go structs (serialized via cbor).
     - **Control plane**: Rest API (served by Mixer).
     - **Internal transport**: cbor messages over NATS (snake protocol).
 
 *   **Messaging & streaming**:
-    *   **Transport**: [NATS JetStream](https://nats.io/) ([Synadia](https://nats.synadia.com)) - chosen for high-performance, distributed persistence (snake protocol).
+    *   **Transport**: [NATS JetStream](https://nats.io/) ([Synadia](https://nats.synadia.com)) - The project chose it for high-performance, distributed persistence (snake protocol).
         - **Streams**: See **[wire protocols](../reference/protocols.md)** for the detailed subject topology (`flux.ctrl.>`, `flux.msg.>`, `flux.telemetry.>`).
     *   **Library**: [Watermill](https://watermill.io/) (mit) - Go library for building event-driven applications.
         - **Role**: Standardizes the "publisher/subscriber" interface. Current: **NATS** (durable). Planned: **gochannel** (RAM) for "turbo wire".
         - **Benefits**: Middleware (OTel, pivot tracing), mockability, and router pattern.
 
-*   **CLI framework**: [Cobra](https://github.com/spf13/cobra) (apache 2.0) - standard library for building powerful CLI applications.
+*   **CLI framework**: [Cobra](https://github.com/spf13/cobra) (apache 2.0) - standard library to build CLI applications.
     *   **Key commands**: `Run`, `inspect config`, `inspect logs`, `logs`, `data query`
 
 *   **Configuration**: [Koanf](https://github.com/knadh/koanf) (mit) - lightweight, extensible configuration management (toml/yaml/env) replacing viper.
@@ -63,13 +63,13 @@ The **Mixer** is **105 MB**, dominated by the statically linked DuckDB engine, a
         *   `FLUXRIG_TRACE=1` - Override all log levels to `trace` (useful for debugging).
         *   `FLUXRIG_DISABLE_TELEMETRY=1` - Disable telemetry shipping.
 
-*   **Gear runtime**: [Wazero](https://wazero.io/) (apache 2.0) - zero-dependency WebAssembly runtime for Go, enabling secure, platform-independent gear execution. Available today for the Wasm **filter** gear; polyglot **source** gears are **[Roadmap]**.
+*   **Gear runtime**: [Wazero](https://wazero.io/) (apache 2.0) - zero-dependency WebAssembly runtime for Go that enables secure, platform-independent gear execution. Available today for the Wasm **filter** gear. Polyglot **source** gears are **[Roadmap]**.
 
 ## Integration & ecosystem
 *   **Universal I/O engine**: [Bento](https://github.com/warpstreamlabs/bento) (mit)
     - **Fork**: We explicitly use the **WarpStream Labs** fork (mit) to ensure permissive licensing, avoiding the Bento/Redpanda (BSL) restrictions.
-    - **Role**: Provides the [bloblang](https://warpstreamlabs.github.io/bento/docs/guides/bloblang/about) mapping language and connectors. The shipped binary registers the pure and local I/O sets (file, csv, socket, websocket, HTTP, subprocess); the ecosystem's institutional connectors (Kafka, S3, AMQP) need a custom build.
-    - **Integration**: Wrapped as a **native Gear** (`pkg/gears/native/bento`).
+    - **Role**: Provides the [bloblang](https://warpstreamlabs.github.io/bento/docs/guides/bloblang/about) mapping language and connectors. The shipped binary registers the pure and local I/O sets (file, csv, socket, websocket, HTTP, subprocess). The ecosystem's institutional connectors (Kafka, S3, AMQP) need a custom build.
+    - **Integration**: The project wraps it as a **native Gear** (`pkg/gears/native/bento`).
 
 ## Data & analytics
 *   **Operational db**:
@@ -86,8 +86,8 @@ The **Mixer** is **105 MB**, dominated by the statically linked DuckDB engine, a
     *   **Enterprise**: [HashiCorp Vault](https://developer.hashicorp.com/vault) or [AWS KMS](https://aws.amazon.com/kms/).
 
 ## Scenario visualization & management UI
-*   **Topology model & viewer**: [LikeC4](https://likec4.dev/) (mit) - architecture-as-code model with interactive drill-down diagrams. The CLI generates a model from any scenario (`fluxrig scenario viz`); viewing uses the likec4 toolchain at development time, never in the shipped binaries.
-*   **Console framework** `[Roadmap]`: [React](https://react.dev/) (mit) + [Vite](https://vite.dev/) (mit) - the operation console builds on `@likec4/diagram`, which renders via [React flow](https://reactflow.dev/) (mit), and ships embedded inside the Mixer binary (no external toolchain at runtime).
+*   **Topology model & viewer**: [LikeC4](https://likec4.dev/) (mit) - architecture-as-code model with interactive drill-down diagrams. The CLI generates a model from any scenario (`fluxrig scenario viz`). Viewing uses the likec4 toolchain at development time, never in the shipped binaries.
+*   **Console framework** `[Roadmap]`: [React](https://react.dev/) (mit) + [Vite](https://vite.dev/) (mit) - the operation console builds on `@likec4/diagram`. It renders via [React flow](https://reactflow.dev/) (mit). It ships embedded inside the Mixer binary (no external toolchain at runtime).
 *   **Code editor** `[Roadmap]`: [Monaco editor](https://microsoft.github.io/monaco-editor/) (mit) - embedded for editing specs and scenarios with server-side validation.
 
 ## AI & analytics (local) (future / research)
@@ -122,7 +122,7 @@ The **Mixer** is **105 MB**, dominated by the statically linked DuckDB engine, a
 
 ## Testing, security & compliance
 
-> **Security First**: **fluxrig** development follows strict security standards (PCI-DSS, OWASP, SSF) from the very beginning. All architectural decisions, dependency choices, and coding practices are audited to ensure compliance.
+> **Security First**: **fluxrig** development follows strict security standards (PCI-DSS, OWASP, SSF) from the very beginning. The project audits all architectural decisions, dependency choices, and coding practices to ensure compliance.
 
 *   **Testing frameworks**:
     *   **[Robot framework](https://robotframework.org/)** (Apache 2.0): Keyword-driven testing for E2E and Acceptance testing.
@@ -147,21 +147,21 @@ The **Mixer** is **105 MB**, dominated by the statically linked DuckDB engine, a
 
 ## Utility libraries
 
-**fluxrig** also utilizes these key utility libraries:
+**fluxrig** also uses these key utility libraries:
 
 *   **[Gin](https://github.com/gin-gonic/gin)**: High-performance http web framework.
-*   **[Google/uuid](https://github.com/google/uuid)**: Robust uuid generation.
+*   **[Google/uuid](https://github.com/google/uuid)**: uuid generation.
 *   **[Gopkg.in/yaml.v3](https://github.com/go-yaml/yaml)**: Strict yaml marshaling/unmarshaling.
 
 ## Documentation & build
 
-The documentation site and PDF generation are powered by:
+The documentation site and PDF generation use:
 
-*   **[Docusaurus](https://docusaurus.io/)**: Modern static site generator (Web version).
+*   **[Docusaurus](https://docusaurus.io/)**: Static site generator (Web version).
 *   **[MkDocs](https://www.mkdocs.org/)**: Static site generator (PDF Core version).
 *   **[Material for MkDocs](https://squidfunk.github.io/mkdocs-material/)**: Theming and UX for the PDF pipeline.
 *   **[Mike](https://github.com/jimporter/mike)**: Versioning management for MkDocs (git-based).
-*   **Docusaurus OpenAPI**: Modern OpenAPI reference renderer (Scalar/Redocusaurus).
+*   **Docusaurus OpenAPI**: OpenAPI reference renderer (Scalar/Redocusaurus).
 *   **[Mkdocs-with-pdf](https://github.com/orzih/mkdocs-with-pdf)**: PDF generation plugin (using **weasyprint**).
 *   **[Mermaid](https://mermaid.js.org/)**: Diagramming and visualization (rendered via `mmdc` CLI).
 *   **[Python](https://www.python.org/)**: Pre-processing scripts for validation and layout.

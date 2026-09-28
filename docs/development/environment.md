@@ -5,7 +5,7 @@ title: Environment & layout
 
 # Engineering environment and layout
 
-This guide provides the architectural roadmap for navigating the **fluxrig** repository and configuring a professional engineering environment. We adhere to **Architectural Autonomy** principles, ensuring that every developer workstation functions as a complete, autonomous validation environment.
+This guide provides the architectural roadmap to navigate the **fluxrig** repository and configure a professional engineering environment. We adhere to **Architectural Autonomy** principles, so every developer workstation functions as a complete, autonomous validation environment.
 
 ## Standard Go project layout
 
@@ -40,9 +40,9 @@ This guide provides the architectural roadmap for navigating the **fluxrig** rep
 └── test/               # E2E (shell) and integration (Robot Framework)
 ```
 
-`pkg/` holds more than this; `go doc ./pkg/...` is the full list. There is no
-`internal/` directory: every package here is importable, and the API surface is
-kept deliberate rather than enforced by the compiler.
+`pkg/` holds more than this. `go doc ./pkg/...` is the full list. There is no
+`internal/` directory. Every package here is importable, and the project keeps the API surface
+deliberate. The compiler does not enforce it.
 
 ### Core philosophy
 1.  **Clean Core**: The primary repository contains only the build artifacts and protocol libraries.
@@ -52,7 +52,7 @@ kept deliberate rather than enforced by the compiler.
 
 ## Local "dual head" environment
 
-For standard development, we use a **"Dual Head"** topology: running both the **Mixer** (Control Plane) and **Rack** (Data Plane) on a single workstation.
+For standard development, we use a **"Dual Head"** topology that runs both the **Mixer** (Control Plane) and **Rack** (Data Plane) on a single workstation.
 
 ### Architecture diagram
 
@@ -85,7 +85,7 @@ The Mixer provides the transport layer locally by embedding NATS JetStream.
     cp examples/configs/fluxrig-mixer.toml.example fluxrig-mixer.toml
     ./bin/fluxrig-mixer -c fluxrig-mixer.toml
     ```
-    *The Mixer initiates the local transport layer (NATS) and exposes the internal registry.*
+    *The Mixer starts the local transport layer (NATS) and exposes the internal registry.*
 
 2.  **Start Data Plane (Rack)**:
     ```bash
@@ -112,7 +112,7 @@ To ensure deterministic builds across the engineering fleet, all workstations mu
 *   **Cryptography**: **Cosign** for artifact signing and verification.
 
 > [!NOTE]
-> **Technical Autonomy**: The **fluxrig** repository is designed for **Air-Gap Readiness**. All critical dependencies are vendored or manageable via local caching, ensuring the Factory can operate without external internet dependencies.
+> **Technical autonomy**: The project designs the **fluxrig** repository for **Air-Gap Readiness**. It vendors all critical dependencies or makes them manageable via local caching, ensuring the Factory can operate without external internet dependencies.
 
 ---
 
@@ -131,8 +131,8 @@ We use `make` as the universal entrypoint for all developer operations.
 | **`make clean`** | Wipes build artifacts, test logs, and local persistence data. |
 
 ### Compilation flags (CGo)
-When building binaries manually, note the following environment variable invariants:
+When you build binaries manually, note the following environment variable invariants:
 
-*   **The Rack / CLI (`fluxrig`)**: Pure static Go. Must be compiled with **`CGO_ENABLED=0`** for Distroless compatibility.
-*   **The Mixer (`fluxrig-mixer`)**: Embedded databases. Must be compiled with **`CGO_ENABLED=1`** to link the DuckDB engine.
+*   **The Rack / CLI (`fluxrig`)**: Pure static Go. You must compile it with **`CGO_ENABLED=0`** for Distroless compatibility.
+*   **The Mixer (`fluxrig-mixer`)**: Embedded databases. You must compile it with **`CGO_ENABLED=1`** to link the DuckDB engine.
 *   **The regression suite**: needs the **`duckdb` CLI** on the PATH. Four suites read the Mixer's store with it to check what was actually persisted. `make regression` refuses to start without it rather than reporting a Rack that never registered.

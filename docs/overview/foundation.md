@@ -10,26 +10,26 @@ title: Foundation components
 
 
 **fluxrig** moves protocol traffic between systems that do not share a format, a
-transport, or an owner. What each node does is described in a scenario rather
-than compiled into it, so a change to a flow is a configuration change.
+transport, or an owner. A scenario describes what each node does.
+A change to a flow is therefore a configuration change.
 
 ## Core pillars
 
-1.  **Deterministic data plane**: every message is serialized as **Deterministic CBOR (RFC 8949)**, so the same message produces the same bytes on every node and an audit trail can be compared rather than trusted.
-2.  **Distributed edge**: The local processing node (Rack) holds its identity and last scenario in local state, reconnects to the Mixer by itself after a connectivity failure, keeps running the flows that stay inside it, and can start without the Mixer.
-3.  **Unified control plane**: one Mixer holds the registry of enrolled Racks, deploys scenarios to them, and aggregates their telemetry.
-4.  **Remote Fleet Management**: **[Planned]** Future releases will introduce native Over-the-Air (OTA) update capabilities for Racks and Gears, allowing for secure, remote lifecycle management of distributed infrastructure.
+1.  **Deterministic data plane**: every message uses **Deterministic CBOR (RFC 8949)** for serialization. The same message therefore produces the same bytes on every node. An audit trail can be compared rather than trusted.
+2.  **Distributed edge**: The local processing node (Rack) holds its identity and last scenario in local state. It reconnects to the Mixer by itself after a connectivity failure. It keeps running the flows that stay inside it. It can start without the Mixer.
+3.  **Unified control plane**: one Mixer holds the registry of enrolled Racks. It deploys scenarios to them. It aggregates their telemetry.
+4.  **Remote fleet management**: **[Planned]** Future releases will introduce native Over-the-Air (OTA) update capabilities for Racks and Gears. They allow secure, remote lifecycle management of distributed infrastructure.
 
 ## Design philosophy
 
-While the platform is technically a distributed system, its architecture is inspired by the principles of modularity and high-integrity data flow.
+The platform is technically a distributed system. Its architecture follows the principles of modularity and high-integrity data flow.
 
 > **[Read more about the professional audio logic →](./philosophy.md)**
 
 ## Strategic alignment
 
 *   **Industrial (UNS)**: Implements the **Unified Namespace (UNS)** and **Industrial DataOps** principles to transform fragmented OT silos into a contextualized, event-driven hierarchy.
-*   **Payments (PCI-DSS)**: Employs the **Stateless Context (Coat Check)** pattern to park correlation context at the edge, keeping the primary processing path lean while the reply is matched back deterministically.
+*   **Payments (PCI-DSS)**: Uses the **Stateless Context (Coat Check)** pattern to park correlation context at the edge. This keeps the primary processing path lean while the reply matches back deterministically.
 *   **DevOps & SRE**: Delivers **Zero-Agent Observability** (OpenTelemetry) and **Configuration-as-Code** deployments, reducing operational overhead and firewall complexity.
 
 ---
@@ -46,18 +46,18 @@ The backbone of **fluxrig** is a resilient, distributed messaging mesh that prov
     *   **Financial-grade reliability**: We use JetStream to ensure **at-least-once** delivery and **strict ordering**, critical for financial events and command protocols.
     *   **Deterministic Data Encoding**: Low-bandwidth serialization via **[CBOR (RFC 8949)](https://cbor.io)** ensures data integrity and responsiveness over satellite or cellular links.
 
-### Stateless context (The Coat Check)
+### Stateless context (the coat check)
 
-To maintain performance and compliance (like PCI-DSS), we avoid bloating messages with heavy state. Instead, we use a "Coat Check" pattern where correlation context is parked in a ticket store (in-process by default, or a shared store when any instance must redeem the reply) and re-attached, unchanged, when the reply returns.
+To maintain performance and compliance (like PCI-DSS), we avoid bloating messages with heavy state. Instead, we use a "Coat Check" pattern. Correlation context parks in a ticket store (in-process by default, or a shared store when any instance must redeem the reply). It re-attaches unchanged when the reply returns.
 
 > [!TIP]
-> This pattern keeps the primary processing path lean. It **parks and restores** context; it does not tokenize (surrogate substitution is a separate, roadmap gear), and it is not at-rest encryption (use in-memory storage, run hardened, for regulated data). See the **[Message Flow](../architecture/message_flow.md)** for technical details.
+> This pattern keeps the primary processing path lean. It **parks and restores** context. It does not tokenize (surrogate substitution is a separate, roadmap gear). It is not at-rest encryption (use in-memory storage, run hardened, for regulated data). See the **[Message Flow](../architecture/message_flow.md)** for technical details.
 
 ## The dual-pipeline strategy
 
 We distinguish sharply between **Business Data** (Transactions) and **Operational Data** (Metrics/Logs). This requires two distinct pipeline patterns.
 
-### Pipeline A: Business Data pipeline (Gears & Wasm)
+### Pipeline A: business data pipeline (gears & Wasm)
 *   **Goal**: parse and transform protocol messages, from ISO 8583 financial traffic to sensor payloads.
 *   **The strategy**: An extensible architecture designed for both performance and custom plugins.
     *   **Native gears**: Optimized Go logic for latency-sensitive protocols like **ISO8583** and financial switching.
@@ -65,16 +65,16 @@ We distinguish sharply between **Business Data** (Transactions) and **Operationa
     *   **Bento integration**: A rich ecosystem of standard cloud connectors (File, Stdout, HTTP) and powerful mapping (**bloblang**).
     *   **Side-Chain Inference**: **[Roadmap]** Asynchronous AI logic for non-deterministic tasks like fraud scoring or synthetic test generation.
 
-### Pipeline B: Operational Data pipeline (OpenTelemetry)
+### Pipeline B: operational data pipeline (OpenTelemetry)
 *   **Goal**: Monitor the health of the system and trace transactions.
 *   **The tool**: **[OpenTelemetry](https://opentelemetry.io)**.
 *   **Strategy**: **Non-Intrusive Telemetry Tapping**.
-    *   **Embedded library**: We use the **OTel Go SDK** directly inside the Rack binary; no sidecars or external agents required.
-    *   **Telemetry tapping**: Telemetry is collected directly from the processing path and diverted for monitoring without impacting the integrity of the primary data flow.
-    *   **Secure transport**: Metrics and traces are serialized and pushed over a secure management tunnel to the central Mixer.
-    *   **Aggregation**: The Mixer collects these streams and forwards them to the storage layer for deep analytics.
+    *   **Embedded library**: We use the **OTel Go SDK** directly inside the Rack binary. No sidecars or external agents required.
+    *   **Telemetry tapping**: The Rack collects telemetry directly from the processing path. It diverts telemetry for monitoring without impacting the integrity of the primary data flow.
+    *   **Secure transport**: The Rack serializes metrics and traces. It pushes them over a secure management tunnel to the central Mixer.
+    *   **Aggregation**: The Mixer collects these streams. It forwards them to the storage layer for deep analytics.
 
-## Deep storage (Data sovereignty)
+## Deep storage (data sovereignty)
 
 *   **The philosophy**: "Your data is yours".
 *   **The solution**: Data is persisted in open standards, ensuring an **Immutable Audit Trail**.
@@ -85,7 +85,7 @@ We distinguish sharply between **Business Data** (Transactions) and **Operationa
 
 ---
 
-## Summary: The stack
+## Summary: the stack
 
 | Component | Role | Execution Model |
 | :--- | :--- | :--- |

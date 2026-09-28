@@ -6,20 +6,20 @@ sidebar_label: System Design
 
 # Architectural overview
 
-The **fluxrig** architecture is a modular, event-driven system designed to separate centralized orchestration from distributed execution. It functions as a connectivity layer that enables deterministic processing across heterogeneous distributed environments.
+The **fluxrig** architecture is a modular, event-driven system. It separates centralized orchestration from distributed execution. It works as a connectivity layer that enables deterministic processing across heterogeneous distributed environments.
 
 > **Core Principle**: **Wires are Persistent Signal Paths** (NATS JetStream).
 > Intra-Rack and Inter-Rack communication use the *same* protocol (`fluxMsg`), ensuring location transparency and uniform observability across the entire mesh.
 
-## Design Philosophy
+## Design philosophy
 
-While the platform is technically a distributed system, its architecture is inspired by the modularity and signal integrity of professional audio studios. 
+The platform is technically a distributed system. Its architecture follows the modularity and signal integrity of professional audio studios.
 
 > **[Read more about the professional audio logic →](../overview/philosophy.md)**
 
 ## System components
 
-The platform is built on a modular architectural model that strictly separates centralized orchestration from distributed execution.
+The platform follows a modular architectural model. It strictly separates centralized orchestration from distributed execution.
 
 | Component | Role | Description |
 | :--- | :--- | :--- |
@@ -39,27 +39,27 @@ The platform is built on a modular architectural model that strictly separates c
 
 ## The gear model
 
-A **Gear** is the primary logic unit. It functions as a pluggable, high-resolution signal processor that can be chained together via **Wires** to form complex, low-latency pipelines.
+A **Gear** is the primary logic unit. It works as a pluggable, high-resolution signal processor. Chains of Gears through **Wires** form complex, low-latency pipelines.
 
-*   **Execution strategy**: **Native gears** are compiled into the binary; **Wasm gears** are sandboxed modules loaded at runtime, written in any language that targets WebAssembly.
-*   **The Port Model**: Communication is strictly governed by standardized entry and exit points (**Ports**) that enforce signal integrity.
-*   **Observability**: Every Gear is observable by default, with throughput and latency telemetry tapped directly from the execution path.
+*   **Execution strategy**: **Native gears** are compiled into the binary. **Wasm gears** are sandboxed modules loaded at runtime, written in any language that targets WebAssembly.
+*   **The Port Model**: Communication follows strict rules for standardized entry and exit points (**Ports**) that enforce signal integrity.
+*   **Observability**: Every Gear is observable by default. The Rack taps throughput and latency telemetry directly from the execution path.
 
 <LikeC4 project="concepts" view="pipeline" height={260} />
 
 <br />
 
 > [!NOTE]
-> The pipeline above shows a **passthrough** flow: two distinct I/O gears bridge two different external connections, and every arrow is a unidirectional Wire. A **request/response** flow with a single external endpoint looks different: it uses **both ports of the same I/O gear**, with one wire pair carrying the request away from its `out` port and the response back to its `in` port. Only the external sockets are bidirectional; see [the port model](./gear.md#the-port-model).
+> The pipeline above shows a **passthrough** flow: two distinct I/O gears bridge two different external connections. Every arrow is a unidirectional Wire. A **request/response** flow with a single external endpoint looks different: it uses **both ports of the same I/O gear**. One wire pair carries the request away from its `out` port. It carries the response back to its `in` port. Only the external sockets are bidirectional. See [the port model](./gear.md#the-port-model).
 
 > [!NOTE]
-> For a deep dive into implementation models, port anatomy, and the Gear lifecycle, see the **[Architecture: Gear](./gear.md)** guide.
+> For detail on implementation models, port anatomy, and the Gear lifecycle, see the **[Architecture: Gear](./gear.md)** guide.
 
 ---
 
 ## The rack (distributed execution)
 
-The Rack is the "execution case" running locally or at the edge. It is designed to be **Static, Self-Contained, and High-Performance**, acting as the runtime environment for local signal processing.
+The Rack is the "execution case" running locally or at the edge. It is **Static, Self-Contained, and High-Performance**. It acts as the runtime environment for local signal processing.
 
 *   **Core**: A compiled **Go binary** (`fluxrig`).
 *   **Deterministic Engine**: Embeds the Wasm runtime, and connects to the NATS JetStream server embedded in the Mixer.
@@ -67,21 +67,21 @@ The Rack is the "execution case" running locally or at the edge. It is designed 
 *   **Hosted Gears**: Executes gateways, codecs, and logic units as a unified pipeline.
 
 ### Recovery without intervention
-A Rack starts from its Passport when the Mixer is unreachable and runs the last scenario it applied if none of its wires uses the bus, then joins the Mixer by itself when it returns, without stopping what it is running. A wire between two gears of one Rack goes through the Rack's memory and keeps running without the Mixer; what crosses between Racks travels over the bus embedded in the Mixer and waits for it. See [A Rack without the Mixer](../reference/operations.md#a-rack-without-the-mixer).
+A Rack starts from its Passport when the Mixer is unreachable. It runs the last scenario it applied if none of its wires uses the bus. It then joins the Mixer by itself when it returns, without stopping what it is running. A wire between two gears of one Rack goes through the Rack's memory. It keeps running without the Mixer. What crosses between Racks travels over the bus embedded in the Mixer. It waits for the Mixer. See [A Rack without the Mixer](../reference/operations.md#a-rack-without-the-mixer).
 
 <LikeC4 project="rack" view="internals" height={440} />
 
 ---
 
 ## The control plane (Mixer)
-The **Mixer** is the central nervous system and **Project Authority** for the rig. It governs identity, orchestrates topology updates, and aggregates telemetry.
+The **Mixer** is the central nervous system and **Project Authority** for the rig. It governs identity. It orchestrates topology updates. It aggregates telemetry.
 
 *   **The Operational Ledger (Registry)**: A hybrid source of truth that maintains node identity, security secrets, and a distributed telemetry index. It leverages **DuckDB** for active state and **Parquet partitions** for historical analysis.
 *   **Analytics**: A telemetry engine providing real-time operational visibility through the Ledger.
 *   **Orchestrator**: Manages the deployment and hot-reloading of **Scenarios** across the fleet.
 
 ### The ledger architecture
-The Registry functions as a **Unified Operational Ledger**. In the current release, it provides a single gateway to query both the **Active State** (currently connected nodes) and **Cold Storage** (historical logs and metrics partitioned by time).
+The Registry works as a **Unified Operational Ledger**. In the current release, it provides a single gateway to query two stores. One is the **Active State** (currently connected nodes). One is **Cold Storage** (historical logs and metrics partitioned by time).
 
 - **SQL Access**: Direct querying of the active registry schema.
 - **Unified Query**: Transparently joins active data with Parquet-backed historical trails using DuckDB's `read_parquet` extensions.
@@ -92,7 +92,7 @@ The Registry functions as a **Unified Operational Ledger**. In the current relea
 The **Rack** is the execution engine that lives locally or at the infrastructure boundary. It is designed for absolute autonomy and wire-speed performance.
 
 *   **Gear Runtime**: A lightweight, non-blocking execution environment.
-*   **Local identity**: Racks start from their local **Passports** (cryptographically signed identity snapshots) without contacting the Control Plane. Flows that stay inside one Rack keep running while the Control Plane is away, and a Rack can start without it.
+*   **Local identity**: Racks start from their local **Passports** (cryptographically signed identity snapshots) without contacting the Control Plane. Flows that stay inside one Rack keep running while the Control Plane is away. A Rack can start without it.
 *   **OTel Ingest**: Local telemetry collection and buffering with resilient outbound delivery.
 
 ---
@@ -114,7 +114,7 @@ Unlike monolithic gateways, **fluxrig** operates across an **Orchestration Spect
 
 ### The hot path: mission-critical signal processing
 *   **Scope**: Real-time signal processing and authorization.
-*   **Performance**: Gear latency is measured per message and exported; the suites in this repository report it. No figure is quoted here, because an overhead number without the machine and the load that produced it is not one.
+*   **Performance**: The Rack measures Gear latency per message and exports it. The suites in this repository report it. No figure appears here, because an overhead number without the machine and the load that produced it is not one.
 *   **Engine**: **Native Rack pipeline**.
 
 ### The cold path: high-assurance business orchestration **[Roadmap]**

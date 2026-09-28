@@ -56,19 +56,18 @@ The Snake tunnel provides the secure mTLS backbone for Rack-to-Mixer communicati
 | Purpose | Algorithm | Implementation |
 | :--- | :--- | :--- |
 | **Signatures** | Ed25519 | Component identity & state |
-| **Encryption** | AES-256-GCM | Transport/session (TLS 1.3). Data-at-rest is **[Roadmap]**, see below |
+| **Encryption** | ChaCha20-Poly1305 (default) or AES-256-GCM | Data at rest (the bus message store). TLS 1.3 for transport/session. |
 | **Hashing** | BLAKE3 / SHA-256| Integrity checks |
 | **IDs** | UUID v7 | Time-sortable unique IDs |
 
 ### Data-at-rest encryption
 
-> [!WARNING]
-> **At-rest encryption is not yet implemented in fluxrig.** Until it ships, do not persist regulated data (PAN, PIN blocks, track data). Use in-memory ticket storage (RAM only), and run the process hardened by the operator: memory locked against swap (`mlock`) and core dumps disabled. Buffer zeroization on release is [Roadmap] and not performed yet, so redeemed ticket state stays in RAM for its retention window before being dropped.
+The Mixer's message store (every message on a guaranteed wire, plus its key-value buckets) is encrypted on disk by default. See [data at rest](../architecture/security.md#data-at-rest-and-in-logs) for the full mechanism, key management, and rotation.
 
-For persistence, **fluxrig** relies on external or embedded storage engines:
+Two stores are not covered by this setting:
 
-*   **NATS KV state**: the state registry and, when a gear is configured for shared storage, its correlation tickets are stored in NATS JetStream. Correlation state is otherwise **local to the Rack by default**. NATS itself supports native encryption-at-rest in enterprise deployments (a symmetric key managed by the operator, securing the JetStream store files); fluxrig does not yet manage this for you.
-*   **WAL logs**: encrypting the Parquet WAL prior to disk flush is a **[Roadmap]** feature.
+*   **The Mixer's analytics database (DuckDB) and Parquet files**, where logs, spans and metrics end up, are not encrypted by it. Regulated data (PAN, PIN blocks, track data) is not written there in the first place; see [data at rest](../architecture/security.md#data-at-rest-and-in-logs) for what was actually searched for.
+*   **A ticket store using `memory`** (the [Conductor gear](gears/conductor.md#ticket-store-strategy)'s default) keeps its state in the Mixer process's RAM, never on disk. RAM-only is not automatically safe: for regulated data, the process still needs operator hardening (memory locked against swap with `mlock`, core dumps disabled). Buffer zeroization on release is `[Roadmap]` and not performed yet, so a redeemed ticket's state stays in RAM for its retention window before being dropped. A ticket store using `local_durable` or `shared` is not encrypted and must not hold regulated data until that ships.
 
 ---
 
@@ -95,10 +94,11 @@ The execution of third-party Wasm logic at the edge necessitates strict supply c
 
 ## API authentication & management
 
-The Mixer REST API is secured via two mechanisms:
+The Mixer REST API is secured by one shared bearer token, `api.auth_token`, required as `Authorization: Bearer <token>` on every route except `/api/v1/health`. The comparison is constant-time. The Mixer refuses to start with no token configured, unless `api.auth_disabled_dangerously` is set explicitly.
 
-1. **mTLS (Internal)**: Administrative CLI commands (`fluxrig admin`) executed on the local network use mTLS to authenticate against the Mixer.
-2. **Bearer Tokens (External)**: For integrations with CI/CD or Enterprise Web Dashboards, the Mixer requires a signed JWT Bearer token configured at bootstrapping.
+This is the same token for every caller: the `fluxrig admin`, `fluxrig configuration`, `fluxrig logs`, `fluxrig metrics`, `fluxrig racks`, `fluxrig topology`, and `fluxrig scenario --api` commands all send it via `--api-token` (or `FLUXRIG_API_TOKEN`). There is no separate mTLS path for the CLI, and the token is not a JWT: it is an opaque, operator-chosen secret.
+
+mTLS is used elsewhere in `fluxrig`, for the Snake transport between a Rack and the Mixer (see [Transport: Snake protocol](#transport-snake-protocol) above), which is a different connection from the REST API this section covers.
 
 ### Certificate rotation
 > [!WARNING]

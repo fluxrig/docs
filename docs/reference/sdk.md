@@ -5,7 +5,7 @@ title: Native Go SDK contract
 
 # Native Go SDK contract
 
-The **fluxrig Native Go SDK** is the authoritative framework for building deterministic signal processing modules (Gears). It provides the primitives required to interact with the `fluxMsg` data stream and the sovereign control plane.
+The **fluxrig Native Go SDK** is the authoritative framework to build deterministic signal processing modules (Gears). It provides the primitives that you need to interact with the `fluxMsg` data stream and the sovereign control plane.
 
 ## The Gear interface
 
@@ -42,16 +42,16 @@ type NativeGear interface {
 ## Signal flow lifecycle
 
 1.  **Ingestion**: A southbound Gear (e.g., `io_tcp`) consumes raw wire bytes and wraps them in a `fluxMsg` envelope.
-2.  **Processing**: The signal is passed through a chain of Logic Gears (Native or Wasm) which modify the metadata or payload.
+2.  **Processing**: The signal passes through a chain of Logic Gears (Native or Wasm) which modify the metadata or payload.
 3.  **Outgestion**: A northbound Gear (e.g., `registry-sink`) persists the final signal or routes it to an external endpoint.
 
 ## Development workflow
 
-Native Gears are compiled directly into the `fluxrig` binary for maximum performance. For third-party extensibility without recompilation, organizations should leverage the **[Wasm Logic Gear](../reference/gears/wasm_logic.md)**.
+The build compiles Native Gears directly into the `fluxrig` binary for maximum performance. For third-party extensibility without recompilation, organizations should use the **[Wasm Logic Gear](../reference/gears/wasm_logic.md)**.
 
 ---
 
 > [!NOTE]
-> The complete Go source for the SDK can be found in the **[`pkg/sdk`](https://github.com/jaab-tech/fluxrig/tree/main/pkg/sdk)** directory. 
+> You can find the complete Go source for the SDK in the **[`pkg/sdk`](https://github.com/jaab-tech/fluxrig/tree/main/pkg/sdk)** directory. 
 > 
 > For implementation templates, see the **[`examples/`](https://github.com/jaab-tech/fluxrig/tree/main/examples)** folder in the official repository.

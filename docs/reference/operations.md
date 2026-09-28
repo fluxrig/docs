@@ -8,13 +8,11 @@ title: Operating fluxrig
 
 # Operating fluxrig
 
-How the two processes are started, how a Rack is brought into a fleet, what
-changing behaviour looks like, what normal looks like, and what the system does
-on its own before anyone looks.
+This page explains how you start the two processes. It explains how you bring a Rack into a fleet. It describes what a behaviour change looks like. It describes what normal operation looks like. It describes what the system does on its own before anyone looks.
 
 ## What you are running
 
-Two processes, with different jobs and different failure consequences.
+Two processes run the system. They have different jobs and different failure consequences.
 
 | | Role | If it stops |
 | :--- | :--- | :--- |
@@ -35,13 +33,9 @@ It listens on two ports: the API on **8090** and the bus on **4222**. The bus is
 embedded, not a dependency: the Mixer runs its own NATS server (the Snake), so
 there is no broker to deploy beside it.
 
-That is a constraint as well as a convenience. **The bus cannot be replaced by an
-existing NATS deployment**: the Mixer starts its own on every boot, and there is
-no configuration that points it at another. What is configurable is where it
-listens (`snake.port`) and what address Racks are given for it (`snake.url`), so
-the bus can move host and port but remains the Mixer's.
+That is a constraint as well as a convenience. **No existing NATS deployment can replace the bus**: the Mixer starts its own on every boot, and no configuration points it at another. You can configure where it listens (`snake.port`) and what address Racks receive for it (`snake.url`). The bus can move host and port but remains the Mixer's.
 
-On first start it writes its own identity and creates what it needs. Under the
+On first start it writes its own identity and creates what it needs. It places these files under the
 store directory (`./data` by default):
 
 | File | What it is |
@@ -52,13 +46,12 @@ store directory (`./data` by default):
 
 **`cluster.key` is the one to back up.** The Mixer generates it when it is
 missing, and then fails to verify the `mixer.flux` beside it, so a Mixer that
-loses its key and keeps its data refuses to start. Every passport it ever issued
-was signed by that key.
+loses its key and keeps its data refuses to start. That key signed every passport it ever issued.
 
 ## Bringing a Rack into the fleet
 
-A Rack enrolls itself on first start. It sends a hello, the Mixer records it as
-`pending`, and it stays there until somebody says yes:
+A Rack enrolls itself on first start. It sends a hello. The Mixer records it as
+`pending`. It stays there until somebody says yes:
 
 ```bash
 fluxrig admin racks list           # who is asking, and who is already in
@@ -66,18 +59,18 @@ fluxrig admin racks approve <id>   # let one in
 ```
 
 Approval is a deliberate step: an enrolled Rack receives scenarios, so adopting
-one is granting it work. A Mixer can be told to adopt automatically with
+one grants it work. You can tell a Mixer to adopt automatically with
 `--auto-adopt`, which is for a development machine and says so.
 
-Once approved, the Rack holds a signed passport (`rack.flux` in its data
+Once the Mixer approves it, the Rack holds a signed passport (`rack.flux` in its data
 directory) and its own identity. Suspended Racks come back with
-`fluxrig admin racks activate <id>`; `fluxrig admin racks remove <id>` takes one
+`fluxrig admin racks activate <id>`. `fluxrig admin racks remove <id>` takes one
 out of the registry for good.
 
 ## Changing what runs
 
-Behaviour is a scenario, and a scenario is a versioned artefact rather than a
-file someone edits in place. The change is filed, then deployed.
+Behaviour is a scenario. A scenario is a versioned artefact rather than a
+file someone edits in place. You file the change. Then you deploy it.
 
 ```bash
 fluxrig scenario diff payment_flow.yaml          # against what is running now
@@ -88,8 +81,8 @@ fluxrig scenario import payment_flow.yaml \
 fluxrig topology list                            # what is deployed where
 ```
 
-A protocol spec travels the same way, and the two are related: a scenario names
-the specs it needs, and deploying it carries them.
+A protocol spec travels the same way. The two relate to each other. A scenario names
+the specs it needs. The Mixer carries them when it deploys the scenario.
 
 ```bash
 fluxrig spec import iso8583-v87-ascii.yaml
@@ -98,9 +91,7 @@ fluxrig spec history iso8583-v87-ascii           # every version of one spec
 ```
 
 Both live in the [content-addressable store](spec_manager.md#cas), so a version
-is immutable: the same name and tag always resolve to the same bytes. A URN is
-resolved when a gear starts, not per message, so importing a newer version
-changes nothing until the scenario restarts.
+is immutable: the same name and tag always resolve to the same bytes. A gear resolves a URN when it starts, not per message, so you change nothing by importing a newer version until the scenario restarts.
 
 ## What normal looks like
 
@@ -113,10 +104,10 @@ curl -s localhost:8090/api/v1/health
 Two numbers are worth watching per gear, because together they say whether work
 is going in and coming out: `flux.gear.messages_in` and
 `flux.gear.messages_out`. A gear whose `messages_in` climbs while
-`messages_out` does not is dropping or erroring, and that comparison is faster
+`messages_out` does not drops or errors, and that comparison is faster
 than reading any log.
 
-Beside them, `flux.gear.errors` and `flux.gear.processing_time_ms` on every
+Beside them, watch `flux.gear.errors` and `flux.gear.processing_time_ms` on every
 gear. I/O gears add `flux.port.bytes_in`, `flux.port.bytes_out`,
 `flux.port.messages_in`, `flux.port.messages_out`,
 `flux.port.connections_active` and `flux.port.connections_total`. The bus reports `flux.bus.publish_count` and
@@ -124,7 +115,7 @@ gear. I/O gears add `flux.port.bytes_in`, `flux.port.bytes_out`,
 `flux.codec.iso8583.fields_count` and, when validation is on,
 `flux.iso8583.violations`.
 
-Telemetry lands in DuckDB on the Mixer and is flushed to Parquet. See
+Telemetry lands in DuckDB on the Mixer, and the Mixer flushes it to Parquet. See
 [Telemetry and analytics](telemetry_analytics.md).
 
 ## A Rack without the Mixer
@@ -137,17 +128,17 @@ A Rack keeps three things in local state: its identity (the Passport), the last 
 | At start, without a Passport | It refuses to start: it has no identity and no scenario to resume. |
 | While running | The process stays up and reconnects by itself when the Mixer returns. A wire between two gears of the same Rack keeps working, because it runs through the Rack's memory. What needs the bus stops: a wire to a gear on another Rack, a wire on the guaranteed lane, the heartbeat, and the export of metrics and traces. |
 
-A Rack that started without the Mixer probes the bus every `snake.offline_retry_interval` (5 seconds by default). When the bus answers, the Rack joins the Mixer: it says hello, receives its Passport, starts its telemetry and listens for scenarios, **without stopping the gears it is running**. A client that was connected to one of them stays connected, and the gears are not started again. If the Mixer then sends a scenario identical to the one running, nothing restarts; a different one is applied as any new scenario is, and restarts the gears it changes.
+A Rack that started without the Mixer probes the bus every `snake.offline_retry_interval` (5 seconds by default). When the bus answers, the Rack joins the Mixer. It says hello, receives its Passport, starts its telemetry, and listens for scenarios. It does all this **without stopping the gears it runs**. A client that connected to one of them stays connected, and the Rack does not start the gears again. If the Mixer then sends a scenario identical to the one running, nothing restarts. The Rack applies a different scenario as it applies any new scenario. It restarts the gears the scenario changes.
 
-The bus is the NATS server embedded in the Mixer. A wire between two gears on one Rack does not use it, unless the scenario asks for the guaranteed lane. The consequence for an operator: **a silent Mixer stops what crosses between Racks and what is on the guaranteed lane, and does not stop a flow that stays inside one Rack.** A Rack that looks absent from `topology status` may be serving such a flow normally. Check the Rack before declaring an outage, and restore the Mixer for everything that crosses between Racks.
+The bus is the NATS server embedded in the Mixer. A wire between two gears on one Rack does not use it, unless the scenario asks for the guaranteed lane. The consequence for an operator is this. **A silent Mixer stops what crosses between Racks and what uses the guaranteed lane. It does not stop a flow that stays inside one Rack.** A Rack that looks absent from `topology status` may be serving such a flow normally. Verify the Rack before declaring an outage. Restore the Mixer for everything that crosses between Racks.
 
 While there is no bus, the gears of a Rack still signal each other in memory (a link that goes down, a connection to close). Commands from the Mixer, such as the simulator's, reach the gears once the Rack has joined it.
 
-Logs are written to a local write-ahead log and shipped when the bus is reachable again, up to `store.wal_max_size_mb` (500 by default). Metrics and traces are not kept: their export fails while the Mixer is unreachable.
+The Rack writes logs to a local write-ahead log and ships them when the bus is reachable again, up to `store.wal_max_size_mb` (500 by default). It does not keep metrics and traces: their export fails while the Mixer is unreachable.
 
 ### What is not there yet `[Roadmap]`
 
-*   **A guaranteed lane local to the Rack.** A NATS leaf node in each Rack would keep on-disk storage, with retention limits, for the wires that ask for it while the Mixer is away.
+*   **A guaranteed lane local to the Rack.** A NATS leaf node in each Rack would keep on-disk storage, with retention limits. It would serve the wires that ask for it while the Mixer is away.
 
 ## What degrades, and what fails
 
@@ -161,7 +152,7 @@ Logs are written to a local write-ahead log and shipped when the bus is reachabl
 
 ## When something is wrong
 
-**Decide which half first.** A Rack and a Mixer fail independently, and the
+**Decide which half first.** A Rack and a Mixer fail independently. The
 answer changes what you look at next.
 
 ```bash
@@ -172,23 +163,22 @@ curl -s localhost:8090/api/v1/health
 If `check` passes and traffic is still wrong, the fault is in the scenario or a
 gear, not in the plumbing.
 
-A Mixer that will not start is usually saying so: it verifies `mixer.flux`
-against `cluster.key` before anything else, and refuses rather than issuing
+A Mixer that will not start usually says so: it verifies `mixer.flux`
+against `cluster.key` before anything else, and refuses rather than issue
 identities it cannot stand behind.
 
-**Logs.** `fluxrig logs` queries the Mixer for a fleet view; `fluxrig tail
-<node>` follows one Rack live; `fluxrig inspect-logs` reads the binary WAL on the
+**Logs.** `fluxrig logs` queries the Mixer for a fleet view. `fluxrig tail
+<node>` follows one Rack live. `fluxrig inspect-logs` reads the binary WAL on the
 Rack itself, which is the only one that works when the Mixer does not.
 
 **Which spec ran.** Every message the ISO 8583 codec handles carries
 `codec.spec_hash`, `codec.spec_id` and `codec.spec_version`. When two Racks
-behave differently on what looks like the same traffic, compare the hashes: they
-are running the same spec or they are not, and nothing else answers that
+behave differently on what looks like the same traffic, compare the hashes. They
+run the same spec or they do not, and nothing else answers that
 question.
 
 ## Configuration
 
-Ports, timeouts, store locations and TLS are in the
-[configuration reference](configuration.md). Two rules hold throughout: every
+The [configuration reference](configuration.md) lists ports, timeouts, store locations and TLS. Two rules hold throughout: every
 wait has a timeout, and every timeout is a configuration field with a documented
 default.

@@ -15,8 +15,8 @@ what runs.
 
 `fluxrig spec doc` is that for protocol specs. Today it renders the ISO 8583
 dialects the [SDL](iso8583_sdl.md) describes, which is where fluxrig's protocol
-description goes deepest. The document is derived from the spec the engine loads,
-so there is no second artefact to keep in step.
+description goes deepest. The document derives from the spec the engine loads.
+No second artefact needs to stay in step.
 
 This is the document a certification team asks for and an integration partner is
 sent: what the interface accepts, message by message and element by element.
@@ -28,9 +28,8 @@ testing. Here it is output, not an obligation.
   title="ISO 8583:1987 (ASCII)"
   doc="/reference/iso8583-v87-ascii.html" />
 
-It carries the spec it was made from, numbered and foldable, in a pane of its
-own. In a public render the blocks of fields marked `scope: private` are cut out
-of it and marked, and the lines that remain keep the numbers the file gives them,
+It carries its source spec, numbered and foldable, in a pane of its
+own. In a public render the document omits the blocks of fields marked `scope: private` and marks the omission. The lines that remain keep the numbers the file gives them,
 so a line shown here is the line to open. That spec ships with fluxrig at
 `examples/specs/iso8583-v87-ascii.yaml`, and this is what produced the document
 above:
@@ -40,7 +39,7 @@ fluxrig spec doc examples/specs/iso8583-v87-ascii.yaml \
   --format html --scope public --out iso8583-v87-ascii.html
 ```
 
-## Why it is rendered rather than written
+## Why render rather than write
 
 A spec stores its rules on the fields, because a field's rules are what change
 together: a scheme bulletin names one data element and states what it does across
@@ -49,12 +48,12 @@ carry", and needs the same matrix read down the other axis.
 
 The per-message tables in the document are that inversion, computed at render
 time. A reference maintained by hand answers the reader's question by restating
-the spec, and the two disagree the first time either is edited.
+the spec, and the two disagree the first time anyone edits either.
 
 ## Scopes
 
 A field may declare `scope: private`. It stays in the spec and the engine keeps
-enforcing it; what changes is who gets to read about it.
+enforcing it. What changes is who gets to read about it.
 
 | `--scope` | Contains | Use |
 |:---|:---|:---|
@@ -62,7 +61,7 @@ enforcing it; what changes is who gets to read about it.
 | `complete` | Every field | Internal reference |
 
 Only the public variant is eligible for publication. The render above is a public
-one and says so in its own header: seven private elements are omitted from it,
+one and says so in its own header. It omits seven private elements,
 among them the encrypted PIN block and the message authentication code.
 
 ## Formats
@@ -72,11 +71,11 @@ among them the encrypted PIN block and the message authentication code.
 | `markdown` (default) | A repository or a docs site |
 | `html` | A page that is read, printed, or saved as a PDF |
 
-The HTML is self-contained. No scripts, stylesheets or fonts are fetched, so it
-opens with no network and survives being mailed as an attachment. Everything it
+The HTML is self-contained. It loads no scripts, stylesheets or fonts, so it
+opens with no network and survives mailing as an attachment. Everything it
 needs travels inside the file.
 
-The spec is loaded before it is rendered, so a spec that does not resolve fails
+The tool loads the spec before rendering it. A spec that does not resolve fails
 here instead of producing a reference that describes nothing real.
 
 ## What the document contains
@@ -105,14 +104,14 @@ nothing written about it renders as a name and a layout.
 | `values` headings | Each value table, marked closed when the spec says the list is complete |
 
 `meaning` is the semantic layer's. The wire layer's `description` is moov's label
-for the element and is left alone: a spec that says nothing about an element
+for the element and the renderer leaves it alone. A spec that says nothing about an element
 still renders under the name the wire layer gives it. See
 [ISO8583 SDL](iso8583_sdl.md) for how the two layers divide.
 
 ## Publishing one
 
 The public render is a single file with no external dependencies, which is what
-makes it publishable by copying. Put it wherever static files are served; the
+makes it publishable by copying. Put it wherever the site serves static files. The
 document on this page is a file in the site's static directory.
 
 Regenerate it on release rather than on edit. A reference carries its spec's

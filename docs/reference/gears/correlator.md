@@ -36,7 +36,7 @@ By "Monitoring the Mix" in parallel, enterprises can achieve risk-free migration
 
 ---
 
-## The Side-Chain Flow
+## The side-chain flow
 
 In **fluxrig**, the Correlator operates "Out-of-Band," receiving non-blocking signal taps from the production wire to ensure **[Mission-Critical Resilience](../../architecture/testing_simulation.md#the-verification-rig-philosophy)**.
 
@@ -69,28 +69,28 @@ graph LR
 ```
 
 > [!NOTE]
-> The diagram is conceptual: the injection toward the Shadow switch and the returning shadow signal each traverse an **[I/O gear](io_iso8583.md)**, which bridges the bidirectional TCP socket onto unidirectional wires. The Correlator itself only consumes and emits one-way `fluxMsg` traffic.
+> The diagram is conceptual. The injection toward the Shadow switch and the returning shadow signal each traverse an **[I/O gear](io_iso8583.md)**. That gear bridges the bidirectional TCP socket onto unidirectional wires. The Correlator itself only consumes and emits one-way `fluxMsg` traffic.
 
 ---
 
-## Technical Differential Analysis
+## Technical differential analysis
 
 The Correlator ensures **Signal Parity** by validating both legs of a financial transaction (Ingress Request and Egress Response).
 
-### Shadow Mirroring (4-Leg Flow)
+### Shadow mirroring (4-leg flow)
 Instead of a "Big Bang" migration, the Correlator orchestrates a **Parallel Run** strategy:
 
 1. **Ingress Request Leg**: Captures the live request, injects it into the **Modernized Switch**, and verifies that the outbound "request signal" matches the legacy production message.
 2. **Egress Response Leg**: Captures the legacy response, injects it into the Shadow system, and verifies that the final "response signal" matches the legacy behavior bit-for-bit.
 
-### Differential Features
+### Differential features
 *   **Semantic Parity**: Compares specific aliases (e.g., `card.account`) defined in the **[Leveler (Codec)](codec_iso8583.md)** rather than raw bytes.
 *   **Performance Benchmarking**: Measures the signal latency of the Shadow system relative to the production path.
 *   **Delta Reporting**: Emits `flux.event.diff_alert` to the Control Plane on any signal mismatch.
 
 ---
 
-## Resilience & Safety
+## Resilience & safety
 
 Designed with the **[Air-Gap First](../../architecture/security.md)** philosophy, the Correlator is **Strictly Non-Blocking**. 
 

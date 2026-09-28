@@ -1,8 +1,8 @@
-# Building Polyglot Gears with WebAssembly (Zig)
+# Building polyglot gears with WebAssembly (Zig)
 
-fluxrig supports writing custom Gears in any language that compiles to WebAssembly (Wasm) and adheres to our minimal ABI. This tutorial will walk you through building a Wasm Gear using [Zig](https://ziglang.org/).
+fluxrig supports writing custom Gears in any language that compiles to WebAssembly (Wasm) and adheres to our minimal ABI. This tutorial shows how to build a Wasm Gear with [Zig](https://ziglang.org/).
 
-Zig is an excellent choice for Wasm gears because it generates extremely small binaries, has no hidden runtime, and natively supports WebAssembly targets out of the box.
+Use Zig for Wasm gears. It generates small binaries. It has no hidden runtime. It supports WebAssembly targets natively.
 
 ## The fluxrig Wasm ABI
 
@@ -14,7 +14,7 @@ To interact with the fluxrig host (Mixer/Rack), your Wasm module must export the
 You can also import host functions to interact with the Rack:
 - `env.log(level: i32, ptr: i32, len: i32)`: Emits a log message to the Rack's structured logger.
 
-## 1. Writing the Zig Gear
+## 1. Writing the Zig gear
 
 Create a file named `polyglot.zig`:
 
@@ -75,14 +75,14 @@ Compile the code to a standalone WebAssembly module using the `wasm32-freestandi
 zig build-lib polyglot.zig -target wasm32-freestanding -dynamic -O ReleaseSmall
 ```
 
-This will produce a `polyglot.wasm` file. Thanks to Zig's `ReleaseSmall` optimization, this file should be incredibly small (often < 10KB), making it perfect for rapid distribution over the edge network.
+This produces a `polyglot.wasm` file. Because of Zig's `ReleaseSmall` optimization, this file should be small (often < 10KB). Small size helps distribution over the edge network.
 
-## 3. Securing and Importing the Gear
+## 3. Securing and importing the gear
 
-fluxrig operates on a Zero-Trust supply chain model. Before a Wasm module can be imported, it must be cryptographically signed by a trusted vendor key (`fluxrig.signature`), and then countersigned by the Mixer (`fluxrig.cluster.signature`).
+fluxrig operates on a Zero-Trust supply chain model. Before you import a Wasm module, sign it cryptographically with a trusted vendor key (`fluxrig.signature`). Then the Mixer countersigns it (`fluxrig.cluster.signature`).
 
-### Step A: Generate a Trust Root
-If you haven't already, generate an Ed25519 keypair and place the public key in the Mixer's trusted directory (`data/wasm/keys`):
+### Step A: Generate a trust root
+If you have not already done this, generate an Ed25519 keypair. Place the public key in the Mixer's trusted directory (`data/wasm/keys`):
 
 ```bash
 # Generate the keypair
@@ -93,14 +93,14 @@ mkdir -p ./data/wasm/keys
 cp ./my_vendor.key.pub ./data/wasm/keys/
 ```
 
-### Step B: Sign the Wasm Payload
+### Step B: Sign the Wasm payload
 Sign your newly compiled Wasm module with your private key. This embeds the cryptographic signature directly into the Wasm binary as a custom section:
 
 ```bash
 fluxrig wasm sign ./polyglot.wasm ./my_vendor.key
 ```
 
-### Step C: Import to the Catalog
+### Step C: Import to the catalog
 Now, securely import the signed payload to the Mixer. The Mixer will cryptographically verify your vendor signature against the public keys in its trust store before distributing it over the NATS Snake.
 
 ```bash
@@ -130,4 +130,4 @@ Upload the scenario using the fluxrig CLI:
 fluxrig scenario import ./scenario.yaml --activate
 ```
 
-The Rack will instantly download the `.wasm` binary from the secure catalog, instantiate a sandboxed `wazero` virtual machine, and begin routing messages through your custom Zig logic!
+The Rack downloads the `.wasm` binary from the secure catalog. It instantiates a sandboxed `wazero` virtual machine. It then routes messages through your custom Zig logic.

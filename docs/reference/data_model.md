@@ -5,9 +5,9 @@ title: Data model (fluxMsg)
 
 # Data model (fluxMsg)
 
-This section details the specific wire formats (CBOR), field dictionaries, and entity identification used in the **fluxrig** ecosystem.
+This section details the specific wire formats (CBOR), field dictionaries, and entity identification that the **fluxrig** ecosystem uses.
 
-**Future Roadmap (future releases)**: We are currently re-implementing the Registry to leverage **[NATS KV](https://docs.nats.io/nats-concepts/jetstream/key-value-store) [Roadmap]** for all state governance. This will move the architecture from a "Push" model to a "Distributed State Watcher" model, increasing resilience and simplifying the handling of concurrent updates.
+**Future Roadmap (future releases)**: We currently re-implement the Registry to use **[NATS KV](https://docs.nats.io/nats-concepts/jetstream/key-value-store) [Roadmap]** for all state governance. This will move the architecture from a "Push" model to a "Distributed State Watcher" model. This increases resilience and simplifies how the system handles concurrent updates.
 
 > [!NOTE]
 > For the conceptual architecture and philosophy behind these models, see the **[Architecture: Data Model](../architecture/data.md)** guide.
@@ -18,7 +18,7 @@ All messages traversing the bus MUST adhere to the **Signal Metadata** standard 
 
 ### Wire headers (transport level)
 
-These headers are used during message propagation across the NATS network or HTTP boundaries. *Note: These are distinct from the internal `Metadata` map found within the payload body.*
+The system uses these headers during message propagation across the NATS network or HTTP boundaries. *Note: These are distinct from the internal `Metadata` map found within the payload body.*
 
 | Header Key | Standard | Description |
 | :--- | :--- | :--- |
@@ -97,7 +97,7 @@ type Hop struct {
 To ensure interoperability across the fleet, **fluxrig** distinguishes between Industry Standard keys and project-specific internal keys.
 
 ### W3C trace context (standard)
-These keys adhere strictly to the [W3C Trace Context](https://www.w3.org/TR/trace-context/) standard used by OpenTelemetry. They use **no-dot** notation.
+These keys adhere strictly to the [W3C Trace Context](https://www.w3.org/TR/trace-context/) standard that OpenTelemetry uses. They use **no-dot** notation.
 
 | Key | Description | Source |
 | :--- | :--- | :--- |
@@ -130,7 +130,7 @@ Internal keys follow the **Dot Notation** convention (`namespace.property`).
 
 ### Payments glossary (industry standard aliases)
 
-To ensure correlation logic (Coat Check, the Conductor, and the Correlator `[Roadmap]`) functions uniformly regardless of the underlying dialect, we enforce exact standard aliases mapped within the Codec SDL.
+Coat Check, the Conductor, and the Correlator `[Roadmap]` function uniformly regardless of the underlying dialect. To ensure this, we enforce exact standard aliases in the Codec SDL.
 
 | Alias Key | Type | Description |
 | :--- | :--- | :--- |
@@ -144,7 +144,7 @@ To ensure correlation logic (Coat Check, the Conductor, and the Correlator `[Roa
 > [!IMPORTANT]
 > **Metadata Integrity Guard**
 > To ensure cross-language interoperability and wire compatibility with CBOR (RFC 8949), all `Metadata` values MUST be UTF-8 compliant. 
-> - **Binary Data**: Must be hex-encoded and prefixed with `hex:` (e.g., `hex:4e62...`).
+> - **Binary Data**: You must encode binary data in hex and prefix it with `hex:` (e.g., `hex:4e62...`).
 > - **Validation**: The system will authoritatively reject messages containing non-UTF-8 metadata at the Bus boundary.
 
 ---
@@ -192,12 +192,12 @@ The Registry manages the `machine_id` allocations that make up the `entity_id`. 
 | **Snake** | **Implicit** | Connection | `0x09` |
 
 **Mixers** use static assignment via configuration to ensure stable leadership.
-**Racks** receive their ID dynamically during enrollment. This ID is then embedded into the **entity_id** (Type `0x04`).
+**Racks** receive their ID dynamically during enrollment. The Registry then embeds this ID into the **entity_id** (Type `0x04`).
 **Snakes** (Type `0x09`) represent the **connection path** (NATS Link) from a Rack to a Mixer. They inherit identity from their host.
 
 ### Unified registry schema
 
-To provide a single pane of glass for all infrastructure, the Mixer maintains a **Unified Registry** table (`registry`) in its embedded DuckDB. This stores `flux_id` -> `PublicKey` mappings.
+To provide one view of all infrastructure, the Mixer maintains a **Unified Registry** table (`registry`) in its embedded DuckDB. This stores `flux_id` -> `PublicKey` mappings.
 
 **Table: `registry`**
 
@@ -216,7 +216,7 @@ To provide a single pane of glass for all infrastructure, the Mixer maintains a 
 
 ## fluxMsg vs trace_id
 
-Before diving into distributed tracing concepts elsewhere, it is important to delineate between our two primary identifiers:
+Before you read about distributed tracing concepts elsewhere, distinguish our two primary identifiers:
 
-*   **`flux_id`**: The physical, unique pointer to the record in *our* internal data store (e.g., DuckDB, parquet). Generated using the **UUID v7** standard for high-speed local issuance with time-ordering.
-*   **`trace_id`**: The logical, distributed trace (opentelemetry/w3c) that ties this `flux_id` to external systems traversing outside the fluxrig boundary.
+*   **`flux_id`**: The physical, unique pointer to the record in *our* internal data store (e.g., DuckDB, parquet). The system generates it with the **UUID v7** standard for high-speed local issuance with time-ordering.
+*   **`trace_id`**: It ties this `flux_id` to external systems outside the fluxrig boundary as a logical, distributed trace (opentelemetry/w3c).

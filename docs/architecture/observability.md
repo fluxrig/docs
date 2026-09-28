@@ -10,19 +10,19 @@ slug: /architecture/observability
 
 
 
-The **fluxrig** observability strategy is built on a non-intrusive model: **Native Telemetry Tapping**. Telemetry is taken from the execution path itself, on the same code path the message travels, rather than by a process observing it from outside.
+The **fluxrig** observability strategy follows a non-intrusive model: **Native Telemetry Tapping**. The Rack takes telemetry from the execution path itself, on the same code path the message travels. No separate process observes it from outside.
 
 ## The zero-agent advantage
 
-There is no sidecar and no collector to install: instrumentation is compiled into the Rack and Mixer binaries.
+There is no sidecar and no collector to install: instrumentation compiles into the Rack and Mixer binaries.
 
 *   **No second process**: nothing else competes for CPU or memory on the node, and nothing else has to be deployed, upgraded or firewalled.
-*   **Unified Transport**: Telemetry, logs, and control signals are multiplexed over the existing secure tunnels, simplifying firewall complexity and reducing network overhead.
+*   **Unified Transport**: Telemetry, logs, and control signals share the existing secure tunnels. This simplifies firewall rules and reduces network overhead.
 *   **W3C TraceContext**: **fluxrig** natively implements the **W3C TraceContext** standard, allowing it to participate in distributed traces started by upstream load balancers or client applications.
 
 ### Resource efficiency
 
-By embedding the telemetry tap in the single Rack binary rather than running a separate sidecar/collector process, fluxrig avoids the memory, CPU, and operational overhead of a multi-process observability stack:
+The telemetry tap lives embedded in the single Rack binary. No separate sidecar/collector process runs. Fluxrig therefore avoids the memory, CPU, and operational overhead of a multi-process observability stack. The tap shares the Rack process. No second process runs.
 
 | Dimension | Industry Standard (Sidecar/Collector) | fluxrig (Embedded Tap) |
 | :--- | :--- | :--- |
@@ -30,20 +30,20 @@ By embedding the telemetry tap in the single Rack binary rather than running a s
 | **Operational Surface** | Multi-process / Sidecar | Single Binary (reduced attack surface) |
 
 > [!NOTE]
-> Comparative resource figures will be published once a reproducible benchmark is available; earlier hard numbers were illustrative and have been removed.
+> Comparative resource figures will appear once a reproducible benchmark is available. Earlier hard numbers were illustrative and are removed.
 
 ---
 
 ## Operational telemetry (OpenTelemetry)
 
-**fluxrig** achieves extreme visibility by generating three distinct telemetry types for every transaction, fully compliant with the **OpenTelemetry (OTel)** standard.
+**fluxrig** achieves broad visibility by generating three distinct telemetry types for every transaction, fully compliant with the **OpenTelemetry (OTel)** standard.
 
 1.  **Traces**: Distributed spans following a request across the entire system.
 2.  **Metrics**: Latency and throughput as histograms rather than averages (latency, throughput, error rates).
 3.  **Logs**: Structured, context-rich events attached directly to the transaction trace span for surgical root-cause analysis.
 
 ### Multi-dimensional correlation
-To bridge the gap between business operations and technical troubleshooting, every event is correlated across three axes:
+To bridge the gap between business operations and technical troubleshooting, every event correlates across three axes:
 
 *   **`flux_id`**: The **Business Context** (The Transaction ID).
 *   **`trace_id`**: The **Operational Context** (The OTel Trace ID).
@@ -53,9 +53,9 @@ To bridge the gap between business operations and technical troubleshooting, eve
 
 ## Telemetry during an outage
 
-Logs are written to a local write-ahead log on the Rack and shipped to the Mixer
-when the bus is reachable. Metrics and traces are exported over the bus and are
-not kept while it is away.
+The Rack writes logs to a local write-ahead log. It ships them to the Mixer
+when the bus is reachable. The Rack exports metrics and traces over the bus. It
+does not keep them while the bus is away.
 
 ```mermaid
 graph LR
@@ -101,7 +101,7 @@ The Rack implements a multi-lane architecture to ensure telemetry never congests
 | **Audit Lane** | Transaction Logs | **P1** | Local WAL | **Delayed, Never Lost**. |
 | **Metric Lane** | Metrics & Debug Spans | **P2** | Buffer Management | **Dropped** if capacity exceeded. |
 
-### The pressure chain (Fail-to-Local)
+### The pressure chain (fail-to-local)
 
 To protect the system during backend saturation or network isolation:
 
@@ -115,7 +115,7 @@ To protect the system during backend saturation or network isolation:
 ## Compliance and governance
 
 ### Deterministic sanitization
-Deterministic masking `[Roadmap]` will scrub sensitive information at the infrastructure boundary before data enters the persistent observability bus, so sensitive fields (like PANs) never reach the centralized telemetry backend, significantly reducing the audit scope of the central infrastructure. Until it ships, scrubbing is the responsibility of a logic gear (for example a `bento` mapping) placed before the telemetry path.
+Deterministic masking `[Roadmap]` will scrub sensitive information at the infrastructure boundary before data enters the persistent observability bus. Sensitive fields (like PANs) then never reach the centralized telemetry backend. This sharply reduces the audit scope of the central infrastructure. Until it ships, a logic gear (for example a `bento` mapping) placed before the telemetry path handles scrubbing.
 
 > [!CAUTION]
-> **Production Logging**: Enabling `DEBUG` or `TRACE` log levels may output raw hex payloads to the log stream. In production environments, ensure these levels are restricted to verify compliance with institutional "No Storage" security requirements.
+> **Production Logging**: Enabling `DEBUG` or `TRACE` log levels may output raw hex payloads to the log stream. In production environments, restrict these levels to verify compliance with institutional "No Storage" security requirements.

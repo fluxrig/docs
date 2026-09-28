@@ -3,12 +3,12 @@ slug: /tutorials/quickstart
 title: 5-Minute Quickstart
 ---
 
-# 5-Minute Quickstart
+# 5-minute quickstart
 
-This guide will walk you through a fully functional local deployment of **fluxrig** in under 5 minutes. You will spin up the control plane, enroll an edge node, and start processing telemetry data without writing any custom code or configuring complex registries.
+This guide shows a functional local deployment of **fluxrig** in under 5 minutes. Start the control plane. Enroll an edge node. Process telemetry data without writing custom code or configuring complex registries.
 
 > [!TIP]
-> **Zero Config First-Run**: By default, fluxrig automatically generates necessary cryptographic keys and embedded database files in your working directory. You don't need a pre-existing complex database or secret manager setup to get started!
+> **Zero config first-run**: By default, fluxrig automatically generates necessary cryptographic keys and embedded database files in your working directory. You do not need a pre-existing complex database or secret manager setup to start!
 
 ## Prerequisites
 
@@ -20,7 +20,7 @@ This guide will walk you through a fully functional local deployment of **fluxri
 
 ## 1. Get the binaries
 
-Currently, building from source is the only available option. Clone the repository and run `make build`:
+Currently, building from source is the only available option. Clone the repository. Run `make build`:
 
 ```bash
 git clone https://github.com/jaab-tech/fluxrig.git
@@ -34,11 +34,11 @@ This will produce the two core binaries in the `./bin` directory:
 
 ---
 
-## 2. Start the Mixer (Control Plane)
+## 2. Start the Mixer (control plane)
 
-The Mixer acts as the brain of your rig. It manages edge node enrollment, maintains the system topology, and ingests telemetry.
+The Mixer acts as the brain of your rig. It manages edge node enrollment. It maintains the system topology. It ingests telemetry.
 
-For this quickstart, we will use the built-in `getting_started.yaml` scenario and the `--auto-adopt` flag. The `--auto-adopt` flag bypasses the manual approval step for new edge nodes, making local development seamless.
+For this quickstart, we will use the built-in `getting_started.yaml` scenario and the `--auto-adopt` flag. The `--auto-adopt` flag bypasses the manual approval step for new edge nodes. This helps local development.
 
 ```bash
 # In your first terminal window:
@@ -52,9 +52,9 @@ For this quickstart, we will use the built-in `getting_started.yaml` scenario an
 
 ---
 
-## 3. Start a Rack (Edge Node)
+## 3. Start a Rack (edge node)
 
-The Rack is the edge execution node. It connects to the Mixer, receives its unique Identity (`entity_id`), downloads the active scenario, and starts processing data.
+The Rack is the edge execution node. It connects to the Mixer. It receives its unique Identity (`entity_id`). It downloads the active scenario. It starts processing data.
 
 ```bash
 # In a new terminal window:
@@ -62,14 +62,14 @@ The Rack is the edge execution node. It connects to the Mixer, receives its uniq
 ```
 
 **What just happened?**
-1. The Rack initiated the **Deferred Adoption Lifecycle**.
-2. Because the Mixer was running with `--auto-adopt`, the Rack was instantly approved.
+1. The Rack started the **Deferred Adoption Lifecycle**.
+2. Because the Mixer ran with `--auto-adopt`, it approved the Rack instantly.
 3. The Rack downloaded its passport (`rack.flux`) and the `getting_started` scenario.
 4. It started the local "Gears" (modules) defined in the scenario.
 
-### Under the Hood: The Scenario Configuration
+### Under the hood: the scenario configuration
 
-When the Rack connects to the Mixer, it receives the following declarative YAML logic. This scenario tells the Rack to deploy two **Bento Gears** connected by a **Wire**, demonstrating a complete message flow through the fluxrig topology.
+When the Rack connects to the Mixer, it receives the following declarative YAML logic. This scenario tells the Rack to deploy two **Bento Gears** with a **Wire**. This shows a complete message flow through the fluxrig topology.
 
 ```yaml
 meta:
@@ -113,11 +113,11 @@ wires:
 ```
 
 **How it works:**
-*   **`type: bento`**: We are defining declarative data-processing Gears without writing compiled Go code.
-*   **`generator` gear**: Uses `input.generate` to produce synthetic JSON payloads every 2 seconds. Its output is auto-wired through the `out` port.
-*   **`sink` gear**: Receives messages through the `in` port and prints them to the console via `output.stdout`.
-*   **`wires`**: The `generator.out → sink.in` wire routes messages through the fluxrig bus (NATS JetStream), giving you full telemetry visibility: gear-level metrics like `flux.gear.messages_in` and `flux.gear.messages_out` are automatically tracked.
-*   **`mapping`**: Uses Bloblang (Bento's mapping language) to inject mock metrics like a simulated CPU percentage (`cpu_pct`) and memory usage (`mem_mb`), alongside a timestamp. The message's own identity is not set here: fluxrig assigns every message a time-ordered UUID v7 `flux_id`, and the bridge reads one from message *metadata* rather than from the payload, so a `flux_id` written into the body is an ordinary field with a confusing name.
+*   **`type: bento`**: This defines declarative data-processing Gears without compiled Go code.
+*   **`generator` gear**: The `generator` gear uses `input.generate` to produce synthetic JSON payloads every 2 seconds. The setup auto-wires its output through the `out` port.
+*   **`sink` gear**: The `sink` gear receives messages through the `in` port. It prints them to the console via `output.stdout`.
+*   **`wires`**: The `generator.out → sink.in` wire routes messages through the fluxrig bus (NATS JetStream). This gives telemetry visibility. The setup automatically tracks gear-level metrics like `flux.gear.messages_in` and `flux.gear.messages_out`.
+*   **`mapping`**: The `mapping` uses Bloblang (Bento's mapping language) to inject mock metrics. It injects a simulated CPU percentage (`cpu_pct`) and memory usage (`mem_mb`) with a timestamp. The setup does not set the message's own identity here. fluxrig assigns every message a time-ordered UUID v7 `flux_id`. The bridge reads one from message *metadata* rather than from the payload. Writing a `flux_id` into the body creates an ordinary field with a confusing name.
 
 You should now see periodic logs in the Rack terminal reflecting the received data:
 ```text
@@ -126,7 +126,7 @@ You should now see periodic logs in the Rack terminal reflecting the received da
 
 ---
 
-## 4. Verify Node Identity
+## 4. Verify node identity
 
 Every Rack receives a **Sovereign Passport** upon enrollment. This binary file (`rack.flux`) contains the node's cryptographically signed identity and configuration. You can inspect this passport using the built-in security tools:
 
@@ -135,21 +135,21 @@ Every Rack receives a **Sovereign Passport** upon enrollment. This binary file (
 ./bin/fluxrig keys inspect data/rack.flux
 ```
 
-**What you'll see:**
+**What you will see:**
 *   **MachineID**: The unique hardware identifier assigned to this node.
 *   **Status**: The current lifecycle state (e.g., `active`).
-*   **Revision**: How many times this identity has been re-issued.
-*   **Signature Status**: The CLI automatically verifies that the identity hasn't been tampered with since issuance.
+*   **Revision**: How many times the Mixer re-issued this identity.
+*   **Signature Status**: The CLI automatically verifies that the identity has not been tampered with since issuance.
 
 ---
 
 ## 5. Observe the flow
 
-The `getting_started` scenario automatically generates synthetic telemetry data (CPU/Memory metrics) on the Rack and streams it securely to the Mixer.
+The `getting_started` scenario automatically generates synthetic telemetry data (CPU/Memory metrics) on the Rack. It streams it securely to the Mixer.
 
-You can query this data directly using the `fluxrig` CLI!
+You can query this data directly with the `fluxrig` CLI.
 
-Open a third terminal and query the real-time metrics:
+Open a third terminal. Query the real-time metrics:
 
 ```bash
 # View the latest heartbeats sent by the Rack
@@ -160,13 +160,13 @@ Open a third terminal and query the real-time metrics:
 ```
 
 > [!NOTE]
-> The Mixer exposes a REST API on port `8090` by default. The CLI is querying `http://localhost:8090/api/v1/telemetry/metrics` behind the scenes.
+> The Mixer exposes a REST API on port `8090` by default. The CLI queries `http://localhost:8090/api/v1/telemetry/metrics` behind the scenes.
 
 ---
 
 ## 6. Next steps
 
-Congratulations! You have successfully established a secure, bidirectional edge-to-cloud topology.
+Congratulations. You established a secure, bidirectional edge-to-cloud topology.
 
 *   **Explore Scenarios**: Learn how to write your own data flows in the [Scenario Configuration](../reference/configuration.md) guide.
 *   **Production Deployment**: Read about the [Security & PKI](../architecture/security.md) model to securely manage your cryptographic keys and disable `--auto-adopt`.

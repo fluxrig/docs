@@ -17,7 +17,7 @@ XML packager definitions the industry has used for decades do exactly that, and
 so does [moov-io/iso8583](https://github.com/moov-io/iso8583), which fluxrig uses
 directly: it is a dependency of this project, and its vocabulary *is* the SDL's
 wire layer rather than something restated beside it. A byte layout says where a
-field sits and how it is encoded, and stops there.
+field sits and how to encode it, and stops there.
 
 The fluxrig SDL adds what a layout cannot express: which elements a given message
 requires, what values they may carry, and what a rule reads to decide. Four
@@ -61,8 +61,7 @@ spec:
       values_ref: "response_code"
 ```
 
-Neither DE 2 nor DE 39 says what it is called, and both are still labelled: the
-label comes from the wire layer, where `moov:spec87ascii` already declares one
+Neither DE 2 nor DE 39 states its own name. The wire layer still labels both: `moov:spec87ascii` already declares one
 for every element it carries. `name` appears on DE 4 because there the base's
 wording is not the one this protocol uses.
 
@@ -79,13 +78,13 @@ Three origins, and they compose. `wire.fields` is always merged over whatever
 
 A `source` beginning `moov:` names a base resolved from the linked library, so it
 cannot drift from upstream: `moov:spec87ascii` and `moov:spec87hex`. Anything
-else is a path to a wire document beside the spec, relative to it. A path that
-climbs out of the spec's own directory is refused, because a spec is deployed to
-Racks and the path it names is not the operator's.
+else is a path to a wire document beside the spec, relative to it. The loader refuses a path that
+climbs out of the spec's own directory. Operators deploy a spec to
+Racks, and the path it names is not the operator's.
 
 Naming a base is what lets the wire layer be *consumed* rather than restated.
 Stripping the semantic keys from a spec yields a document the upstream library
-accepts on its own, and that property is asserted in the test suite, so the two
+accepts on its own, and the test suite asserts that property, so the two
 layers cannot quietly fuse.
 
 > [!WARNING]
@@ -93,17 +92,17 @@ layers cannot quietly fuse.
 
 ## Field definitions
 
-Fields are defined by ID (0-128). ID 0 is reserved for MTI. ID 1 (Bitmap) is implicit.
+Define fields by ID (0-128). ID 0 stays reserved for MTI. ID 1 (Bitmap) is implicit.
 
 ### Wire attributes
 
 These describe the bytes, and belong in the wire document or in
-`wire.fields`. The vocabulary is the upstream library's, carried verbatim, so
-these attributes are documented there rather than restated here:
+`wire.fields`. The vocabulary is the upstream library's, carried verbatim. That documentation defines
+these attributes. This page does not restate them:
 
 - [Defining message specifications](https://github.com/moov-io/iso8583#defining-message-specifications)
   is the reference for what each attribute means. It names them as Go struct
-  fields (`Enc`, `Pref`, `Pad`); the keys below are the same vocabulary written
+  fields (`Enc`, `Pref`, `Pad`). The keys below are the same vocabulary written
   declaratively.
 - [`examples/specs/spec87ascii.yaml`](https://github.com/moov-io/iso8583/blob/master/examples/specs/spec87ascii.yaml)
   is a complete spec in exactly the form used here, and is the fastest way to see
@@ -111,8 +110,8 @@ these attributes are documented there rather than restated here:
 - [Composite fields](https://github.com/moov-io/iso8583/blob/master/docs/composite-fields.md)
   covers `subfields` in depth: TLV, positional parts, and unknown tags.
 
-The vocabulary is consumed, not copied: an attribute moov adds is available here
-with no change to fluxrig, and one it renames is a breaking change.
+fluxrig consumes the vocabulary, it does not copy it. An attribute moov adds is available here
+with no change to fluxrig. One it renames is a breaking change.
 
 | Attribute | Description |
 | :--- | :--- |
@@ -145,8 +144,8 @@ These describe meaning, and belong under `fields`.
 | `messages` | What the field means in each message it has a rule for. See [The per-message matrix](#the-per-message-matrix). |
 | `subfields` | What the parts of a composite mean. See [Subfields](#subfields). |
 
-**`sensitivity` is the one to set.** A field classified `pan`, `chd`, `sad` or
-`pii` is masked whether or not it also sets `log_mask`. Requiring both is how a
+**`sensitivity` is the one to set.** Classification as `pan`, `chd`, `sad` or
+`pii` masks a field whether or not it also sets `log_mask`. Requiring both is how a
 PAN reaches a log: someone sets the classification and reasonably trusts it.
 
 ### Example
@@ -177,15 +176,15 @@ spec:
 ## The per-message matrix
 
 > [!NOTE]
-> Two different things are checked, at two different times, and the distinction
+> Two different checks run at two different times, and the distinction
 > is worth keeping.
 >
-> **The spec is checked when it loads.** See [What is checked when a spec
+> **The loader checks the spec when it loads.** See [What is checked when a spec
 > loads](#what-is-checked-when-a-spec-loads). A `when` that does not parse, or one
 > reading a field the spec never declared, fails the whole load, at boot.
 >
-> **A message is checked against this matrix** when the codec is configured to do
-> it. See [Enforcing the rules](#enforcing-the-rules): the default is off, so
+> **The codec checks a message against this matrix** when configured to do
+> it. See [Enforcing the rules](#enforcing-the-rules). The default is off, so
 > turning it on is a deployment decision rather than a consequence of upgrading.
 
 A field does not mean one thing. DE 39 is issuer-originated in an authorization
@@ -215,9 +214,9 @@ disposition in an `0810`. `messages` on the field says so, one entry per message
       note: "A network management request carries no disposition."
 ```
 
-Five entries for one element, and none of them is redundant: it is required in an
-authorization or financial response, required again in a reversal response and in
-a network management response, and forbidden in both of the requests that cause
+Five entries for one element, and none of them is redundant: the matrix requires it in an
+authorization or financial response, requires it again in a reversal response and in
+a network management response, and forbids it in both of the requests that cause
 those last two.
 
 An entry carries what varies by message, and `mti` takes a list because messages
@@ -239,7 +238,7 @@ two is the mistake to avoid, because "it must be present whatever its value" is
 `echo` is the sharpest conformance check available: DE 11 arriving changed means
 correlation is broken. `new` is DE 39: the issuer decides it. `modified` is DE 4
 under partial approval, where the response returns less than the amount asked
-for: a difference is expected and is the point of the message.
+for. Expect a difference there: it is the point of the message.
 
 It is meaningless on a request, where there is no prior value to relate to, and a
 spec that sets it there fails to load.
@@ -247,7 +246,7 @@ spec that sets it there fails to load.
 An entry also carries the value domain and a `note` scoped to that pairing.
 
 **Cases within a message.** Two `0200`s differ by what the transaction is, so an
-entry may carry a `when` that narrows it. Entries are evaluated in order and the
+entry may carry a `when` that narrows it. The codec evaluates entries in order and the
 first match wins, which makes an entry without a `when` the message's default,
 and therefore last:
 
@@ -266,10 +265,10 @@ and therefore last:
       usage: optional                                  # any other entry mode
 ```
 
-Put the last entry first and it wins every time: it has no condition, so it
-matches any `0100`, and the two above it are never reached.
+Put the last entry first and it wins every time. It has no condition, so it
+matches any `0100`. The codec never reaches the two above it.
 
-There is no `usage: conditional`. The entry's `when` is the condition; a usage
+There is no `usage: conditional`. The entry's `when` is the condition. A usage
 that only restated that one exists would say nothing about the field.
 
 **Why on the field and not on the message.** A field's rules are what changes
@@ -279,8 +278,8 @@ a projection of this, derived by inverting it.
 
 ## Value sets
 
-A value set says what a coded field can hold. It is declared under `enums` and
-referenced by name, or written inline as `validValues`.
+A value set says what a coded field can hold. Declare it under `enums` and
+reference it by name, or write it inline as `validValues`.
 
 ```yaml
 enums:
@@ -315,7 +314,7 @@ code nobody listed still lands in a category that was.
 
 ## Subfields
 
-A composite is described from both sides. The wire layer frames the parts, and the
+Describe a composite from both sides. The wire layer frames the parts, and the
 field says what they are:
 
 ```yaml
@@ -360,15 +359,15 @@ there are on the characters the part carries, since a part declares no
 ## What is checked when a spec loads
 
 A spec is mostly claims about itself: this field's values come from that enum,
-this message pairs with that one, this condition reads that data element. Every
-one of them is resolved when the spec loads, and a claim that points at nothing
+this message pairs with that one, this condition reads that data element. The loader resolves every
+one of them when the spec loads, and a claim that points at nothing
 **fails the whole spec**, and never becomes an error on a message.
 
 That boundary is deliberate. A Rack that accepted a spec has already told the
 Mixer it is serving that protocol, so a reference that only breaks on the right
 transaction breaks in production.
 
-What is rejected:
+The loader rejects:
 
 | | |
 | :--- | :--- |
@@ -391,17 +390,17 @@ value carries a `category`, because categories are what give a value nobody list
 bucket to land in.
 
 That is also what naming a value is for. `name` turns `39=05` into "Do not
-honour", a row someone can read; `category` turns seventeen response codes into
+honour", a row someone can read. `category` turns seventeen response codes into
 six outcomes (approved, referral, soft decline, hard decline, error, system)
 which is the axis anyone actually charts. Without them a coded field is a
 histogram of opaque strings.
 
-Every problem is reported in a single load, not one per fix.
+The loader reports every problem in a single load, not one per fix.
 
 ## Enforcing the rules
 
-The `messages` matrix and `checks` are applied to traffic by the
-[`codec_iso8583` gear](../gears/codec_iso8583.md), through its `validation`
+The [`codec_iso8583` gear](../gears/codec_iso8583.md) applies the `messages`
+matrix and `checks` to traffic through its `validation`
 setting:
 
 | `validation` | What it does |
@@ -414,7 +413,7 @@ The default is `off`, so upgrading changes nothing about what traffic is
 accepted. Use `warn` to find out whether your spec matches your traffic, then
 `enforce`.
 
-What is applied, per message type:
+What the codec applies, per message type:
 
 *   **Usage.** `mandatory` and absent, or `forbidden` and present, rejects.
 *   **Conditions.** A rule carrying a `when` applies only where the condition
@@ -424,8 +423,8 @@ What is applied, per message type:
 *   **Checks.** Each carries its own `severity`. A check marked `warn` never
     rejects, even while the gear is enforcing.
 
-Every violation is reported, not only the first. What was found travels on the
-message as `codec.violations`, and is counted on `flux.iso8583.violations` by
+The gear reports every violation, not only the first. What it found travels on the
+message as `codec.violations`. The gear counts it on `flux.iso8583.violations` by
 severity, kind and MTI.
 
 A message type the spec says nothing about breaks nothing.
@@ -443,7 +442,7 @@ fluxrig spec doc examples/specs/iso8583-v87-ascii.yaml --format html --out refer
 That is the document [linked here](protocol_reference.md), rendered from this
 spec.
 
-**2. File it as an artefact.** A spec a fleet runs is deployed, not copied to each
+**2. File it as an artefact.** Operators deploy a spec a fleet runs. They do not copy it to each
 Rack by hand:
 
 ```bash
@@ -468,8 +467,8 @@ gears:
       validation: warn
 ```
 
-Traffic is untouched. Each violation is logged with the rule that fired and the
-spec it was judged against:
+Traffic is untouched. The gear logs each violation with the rule that fired and the
+spec it judged it against:
 
 ```
 Message breaks a spec rule | flux.name=codec-in type=codec_iso8583 direction=decode
@@ -490,7 +489,7 @@ finding out what your spec says about it by dropping messages.
 
 Equality reads the characters an element carries, so a response code of `"00"` is
 not `"0"`. An element that declares a `format.kind` of `amount`, `date`, `time`,
-`datetime` or `numeric` is compared as a number instead, which is what lets a
+`datetime` or `numeric` compares as a number instead, which is what lets a
 rule write `field(4) == 1000` rather than the element's own zero padding.
 
 `pan` is not among them: a leading zero makes it a different card.
@@ -498,11 +497,11 @@ rule write `field(4) == 1000` rather than the element's own zero padding.
 ## Roadmap: simulation
 
 > [!WARNING]
-> The simulation blocks are checked for consistency when a spec loads and are not
-> executed: no engine generates a message from them or answers one. A spec may
+> The loader checks the simulation blocks for consistency when a spec loads but executes nothing.
+> No engine generates a message from them or answers one. A spec may
 > declare `x-fluxrig-simulation` and nothing in the open product will read it.
 
-### Planned Simulation Macros:
+### Planned simulation macros:
 
 *   `$PAN(SCHEME, LEN)`: Generates valid Luhn PAN.
 *   `$RAND(MIN, MAX)`: Random integer.
@@ -514,7 +513,8 @@ rule write `field(4) == 1000` rather than the element's own zero padding.
 
 ## PCI-DSS compliance integration
 
-The SDL is the primary tool for **PCI Scope Reduction**. By defining security attributes directly in the spec, you ensure that sensitive data is isolated and protected across the entire data plane.
+The SDL is the primary tool for **PCI Scope Reduction**. By defining security attributes directly in the spec, you isolate
+sensitive data and protect it across the entire data plane.
 
 ### Recommended configuration for sensitive fields
 
@@ -526,10 +526,10 @@ The SDL is the primary tool for **PCI Scope Reduction**. By defining security at
 | **52** | Personal Identification Number | `PIN Block` | `sad` |
 | **55** | ICC / Chip Data | `EMV Data` | `chd` |
 
-Classifying a field is enough; `log_mask` follows from it. The classes come from
+Classifying a field is enough. `log_mask` follows from it. The classes come from
 the PCI vocabulary: `pan` is the account number, `sad` is sensitive
 authentication data, `chd` is the rest of the cardholder data, `pii` is personal
 data that is not card data.
 
 > [!IMPORTANT]
-> A classified field is replaced with asterisks in all **Rack** and **Mixer** operational logs. What a classification implies for persistence beyond logs is [Roadmap]: the classes are declared and drive masking today, and the storage policy that derives from them is not yet implemented.
+> Racks and Mixers replace a classified field with asterisks in all operational logs. What a classification implies for persistence beyond logs is [Roadmap]. The spec declares the classes, and they drive masking today. The storage policy that derives from them is not yet implemented.

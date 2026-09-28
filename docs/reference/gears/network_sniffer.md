@@ -16,9 +16,9 @@ excerpt: Passive AF_PACKET/pcap network capture for non-intrusive monitoring.
 
 The `network_sniffer` gear is an I/O gear designed for **Non-Intrusive Packet Capture** (pcap/AF_PACKET). Rather than terminating TCP connections or acting as a proxy, this gear passively listens to raw network interfaces to capture traffic.
 
-While broadly applicable, its primary strategic use case within the **fluxrig** ecosystem is **Passive ISO8583 Capture** for environments where altering routing or introducing a proxy is not permitted.
+The gear has broad uses. Its primary strategic use within the **fluxrig** ecosystem is **Passive ISO8583 Capture**. It serves environments where altering routing or introducing a proxy is not permitted.
 
-It extracts the raw payloads from the targeted packets and passes them into the rig as standard `RawPayload` (bytes), where they can be parsed by the `codec_iso8583` gear for observability, analytics, or shadow mirroring without touching the active payment path.
+It extracts the raw payloads from the targeted packets. It passes them into the rig as standard `RawPayload` (bytes). The `codec_iso8583` gear parses them for observability, analytics, or shadow mirroring. The active payment path stays untouched.
 
 ## Type definition
 
@@ -85,9 +85,9 @@ graph LR
     *   The gear binds to the specified network interface using a capture mechanism (e.g., AF_PACKET on Linux or pcap).
     *   It applies the `bpf_filter` directly at the kernel level for maximum efficiency.
     *   It reassembles TCP streams from the captured packets to reconstruct the original application payload (handling out-of-order packets and retransmissions).
-    *   Once a complete framing boundary is identified (configurable), it encapsulates the bytes into a `fluxMsg`.
-    *   **Metadata** is added: `src.ip`, `dst.ip`, `src.port`, `dst.port`.
-    *   The message is published to the internal NATS bus.
+    *   Once the gear identifies a complete framing boundary (configurable), it encapsulates the bytes into a `fluxMsg`.
+    *   It adds **metadata**: `src.ip`, `dst.ip`, `src.port`, `dst.port`.
+    *   It publishes the message to the internal NATS bus.
 
 2.  **Egress (`send`)**:
     *   The `io_network_sniffer` gear is strictly **read-only**. It does not support packet injection back into the network. Egress ports are physically disconnected at the gear level.
@@ -98,5 +98,5 @@ The Network Sniffer is a vital tool for the "Stateless Edge" and risk-free moder
 
 *   **Zero-downtime tap**: Tap an existing switch or core banking connection via a span port.
 *   **Shadow production**: Feed live, parsed production data (via the codec Gear) into a new environment for 100% realistic load testing without intercepting live transactions.
-*   **Compliance archival**: Capture all ISO8583 traffic continuously, strip PII via a logic Gear, and stream to an immutable enterprise data lake (e.g., ClickHouse) for PCI-DSS compliant auditing.
+*   **Compliance archival**: Capture all ISO8583 traffic continuously. Strip PII via a logic gear. Stream the result to an immutable enterprise data lake (e.g., ClickHouse) for PCI-DSS compliant auditing.
 

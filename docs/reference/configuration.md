@@ -88,6 +88,7 @@ Rack-specific settings.
 | `lane_queue_size` | `int` | `1024` | Messages each [hot lane](scenario.md#lanes) wire holds in memory between the gear that emits and the gear that consumes. |
 | `lane_send_timeout` | `string` | `"5s"` | How long a gear that emits waits for room in a full hot lane queue before it gets an error. |
 | `cleanup_timeout` | `string` | `"2s"` | Grace given to release resources after draining. |
+| `bootstrap_secret` | `string` | `"fluxrig"` | Shared secret this Rack presents on its very first Hello, before it has a Passport of its own. Must match the Mixer's `enrollment.bootstrap_secret`. Once enrolled, the Rack presents its own per-Rack secret instead; this only matters for that first contact. |
 
 #### `[Store]`
 Data storage settings.
@@ -123,6 +124,12 @@ Configuration for the underlying transport bus.
 | `inactive_threshold` | `string` | `"30s"` | Silence after which a consumer is treated as inactive. |
 | `root_ca_file` | `string` | `""` | CA bundle verifying the Mixer's bus certificate. Also settable as `rack.bus.root_ca_file`. |
 | `insecure_skip_verify` | `bool` | `false` | Skip verification of the bus certificate. Development only. Also settable as `rack.bus.insecure_skip_verify`. |
+| `allow_non_tls` | `bool` | `false` | Mixer only. Lets a plaintext client connect alongside a TLS one once `tls_cert_file`/`tls_key_file` are set. Off by default, so configuring TLS actually requires it instead of just offering it. |
+| `tls_ca_file` | `string` | `""` | Mixer only. CA a Rack's own client certificate is verified against, for mTLS. |
+| `tls_verify` | `bool` | `false` | Mixer only. Requires a Rack to present a client certificate, verified against `tls_ca_file`. |
+| `kv_max_bytes` | `int` | `1073741824` | Mixer only. Largest size of a key-value bucket the Mixer provisions, in bytes. Caps it the same way `stream_max_bytes` caps a stream. |
+| `kv_max_value_size` | `int` | `1048576` | Mixer only. Largest single value a key-value bucket accepts, in bytes. |
+| `kv_ttl` | `string` | `"0s"` | Mixer only. Expiry for a key-value bucket entry. `0s` means no expiry. |
 
 **Telemetry settings**
 
@@ -220,6 +227,8 @@ Mixer REST API settings.
 | `control_confirm_timeout` | `string` | `"2s"` | How long a simulator control command (`/api/v1/control/sim/{action}`) waits for a gear to acknowledge it before the request answers that nobody is listening. |
 | `tls_cert_file` | `string` | `""` | Server certificate. The API serves HTTPS when this and `tls_key_file` are both set. |
 | `tls_key_file` | `string` | `""` | Server private key. |
+| `auth_token` | `string` | `""` | Bearer token required as `Authorization: Bearer <token>` on every route but `/api/v1/health`. The Mixer refuses to start with this unset unless `auth_disabled_dangerously` is set. |
+| `auth_disabled_dangerously` | `bool` | `false` | Starts the Mixer with no API authentication. The explicit, named opt-out for a deployment with no `auth_token` configured; logs a warning on every start. |
 
 #### `[Wasm]` (Mixer)
 Where signed Wasm gears and the keys that verify them are kept.
@@ -522,8 +531,8 @@ fluxrig metrics --entity mixer-01
 
 The Mixer exposes telemetry query endpoints via a REST API.
 
-> [!WARNING]
-> **API Security Limitation (Current Release)**: The current release of the Control Plane API does NOT implement authentication or authorization. It is strictly intended for use within trusted, isolated management networks. Exposing this port to the public internet will allow unauthorized scenario activation and data exfiltration.
+> [!NOTE]
+> **Every route here requires authentication.** Send `Authorization: Bearer <api.auth_token>`. The Mixer refuses to start with no token configured, unless `api.auth_disabled_dangerously` is set explicitly (not recommended). The one exception is `/api/v1/health`, which stays open with no token.
 
 ### Logs API
 
@@ -546,7 +555,8 @@ GET /api/v1/telemetry/logs
 
 **Example**:
 ```bash
-curl "http://mixer:8090/api/v1/telemetry/logs?level=error&since=2025-12-21T00:00:00Z&limit=50"
+curl -H "Authorization: Bearer $API_TOKEN" \
+  "http://mixer:8090/api/v1/telemetry/logs?level=error&since=2025-12-21T00:00:00Z&limit=50"
 ```
 
 ### Traces API `[Roadmap]`

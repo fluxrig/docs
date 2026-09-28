@@ -5,25 +5,25 @@ title: Developing specialized gears
 
 # Developing specialized gears
 
-**fluxrig** is designed as a modular orchestration engine where physical I/O and business logic are encapsulated as **Gears**. 
+**fluxrig** works as a modular orchestration engine. It encapsulates physical I/O and business logic as **Gears**.
 
-Before dropping into Go code, remember the **Orchestration Spectrum**:
+Before you write Go code, remember the **Orchestration Spectrum**:
 
-*   **Declarative Logic**: The majority of business logic patterns (including normalization, mapping, and alerting) are most efficiently implemented using the **[Bento Gear](../reference/gears/bento.md)**. This declarative approach significantly reduces development overhead and long-term maintenance complexity.
-*   **Polyglot Business Rules**: For secure, sandboxed execution of custom business logic in languages like Rust, Zig, or AssemblyScript, use the **[Wasm Logic Gear](../reference/gears/wasm_logic.md)**. See the **[Building Wasm Gears in Zig](./building_wasm_gears_zig.md)** tutorial.
-*   **Specialized Protocols**: For protocol drivers (ISO 8583, Modbus), binary packers, or customized network stacks, you develop **Native Go Gears**.
+*   **Declarative logic**: Implement most business logic patterns (including normalization, mapping, and alerting) with the **[Bento Gear](../reference/gears/bento.md)**. This declarative approach reduces development overhead and long-term maintenance complexity.
+*   **Polyglot business rules**: For secure, sandboxed execution of custom business logic in languages like Rust, Zig, or AssemblyScript, use the **[Wasm Logic Gear](../reference/gears/wasm_logic.md)**. See the **[Building Wasm Gears in Zig](./building_wasm_gears_zig.md)** tutorial.
+*   **Specialized protocols**: Develop **Native Go Gears** for protocol drivers (ISO 8583, Modbus), binary packers, or customized network stacks.
 
-## Prerequisites: The gear contract
+## Prerequisites: the gear contract
 
-A **Gear** is a modular plugin that satisfies the `sdk.NativeGear` interface. Unlike generic plugins, native Gears have direct access to the services of the hosting **Rack**, including structured logging, deterministic ID generation, and the OpenTelemetry signal path.
+A **Gear** is a modular plugin that satisfies the `sdk.NativeGear` interface. Unlike generic plugins, native Gears have direct access to the services of the hosting **Rack**. These services include structured logging, deterministic ID generation, and the OpenTelemetry signal path.
 
 The lifecycle of a Gear follows a strict state machine to ensure zero-loss operations:
 
-1.  **Init**: Strategic configuration mapping and validation.
+1.  **Init**: Configuration mapping and validation.
 2.  **Start**: Active lifecycle ignition (spawning listeners or dialers).
 3.  **Process**: Sequential request/response transformation.
 4.  **Drain**: Graceful input suppression (preparing for shutdown).
-5.  **Stop**: Absolute resource reclamation.
+5.  **Stop**: Resource reclamation.
 
 To guarantee technical fidelity, the following tutorial uses production-grade code derived from the **Simple TCP Gear** (`pkg/gears/native/io_tcp`).
 
@@ -71,13 +71,13 @@ var _ sdk.NativeGear = (*Gear)(nil)
 ```
 
 > [!TIP]
-> **Compilation Safety**: The `var _ sdk.NativeGear = (*Gear)(nil)` declaration forces the compiler to verify implementation completeness during development.
+> **Compilation safety**: The `var _ sdk.NativeGear = (*Gear)(nil)` declaration forces the compiler to check implementation completeness during development.
 
 ---
 
-## Step 2: Strategic initialization
+## Step 2: Initialization
 
-The `Init` method is executed during the Rack's boot sequence. This is where raw configuration is transformed into a validated technical state.
+The Rack executes the `Init` method during its boot sequence. Here raw configuration becomes a valid technical state.
 
 ```go
 // Init loads configuration and prepares the gear.
@@ -104,9 +104,9 @@ func (g *Gear) Init(ctx sdk.GearContext) error {
 
 ---
 
-## Step 3: Active lifecycle ignition
+## Step 3: Start the gear
 
-The `Start` method begins the Gear's operational life. It provides the `emit` callback, allowing the Gear to inject signals into the signal path.
+The `Start` method starts the Gear's operational life. It provides the `emit` callback. The Gear uses it to inject signals into the signal path.
 
 ```go
 func (g *Gear) Start(ctx context.Context, emit func(*fluxmsg.FluxMsg)) error {
@@ -128,9 +128,9 @@ func (g *Gear) Start(ctx context.Context, emit func(*fluxmsg.FluxMsg)) error {
 
 ---
 
-## Step 4: Networking resilience (The Accept Loop)
+## Step 4: Networking resilience (the accept loop)
 
-Robust networking at the edge requires protection against resource exhaustion. Below is the production implementation of the TCP `acceptLoop`, featuring exponential backoff to prevent spin-loops during OS failure states.
+Networking at the edge requires protection against resource exhaustion. Below is the production implementation of the TCP `acceptLoop`. It uses exponential backoff to prevent spin-loops during OS failure states.
 
 ```go
 // pkg/gears/native/io_tcp/server.go
@@ -169,7 +169,7 @@ func (s *Server) acceptLoop() {
 
 ## Step 5: Signal ownership and metadata
 
-In a high-concurrency runtime, memory safety is paramount. When reading from hardware, we must explicitly copy the buffer and attach traceable metadata.
+In a high-concurrency runtime, memory safety matters. When you read from hardware, copy the buffer explicitly. Attach traceable metadata.
 
 ```go
 func (s *Server) handleConn(conn net.Conn) {
@@ -197,9 +197,9 @@ func (s *Server) handleConn(conn net.Conn) {
 
 ---
 
-## Step 6: Replying to the source
+## Step 6: Reply to the source
 
-The `Process` method handles asynchronous signals returning from the pipeline. We use the **Signal Metadata** to route the response back to the correct physical socket.
+The `Process` method handles asynchronous signals returning from the pipeline. We use the **Signal metadata** to route the response back to the correct physical socket.
 
 ```go
 func (s *Server) Process(ctx context.Context, msg *fluxmsg.FluxMsg) (*fluxmsg.FluxMsg, error) {
@@ -229,10 +229,9 @@ func (s *Server) Process(ctx context.Context, msg *fluxmsg.FluxMsg) (*fluxmsg.Fl
 
 ---
 
-## Step 7: Shutting down
+## Step 7: Stop the gear
 
-`Drain` and `Stop` are the other half of the contract, and the compile-time
-check above fails without them.
+`Drain` and `Stop` are the other half of the contract. The compile-time check above fails without them.
 
 ```go
 // Drain stops taking new work and lets what is already in flight finish. It is
@@ -258,14 +257,13 @@ func (g *Gear) Stop() error {
 }
 ```
 
-Both must be idempotent. A gear that panics or blocks the second time it is
-stopped turns an orderly shutdown into a hung process.
+Both must be idempotent. A gear that panics or blocks when the Rack stops it a second time turns an orderly shutdown into a hung process.
 
 ---
 
 ## Step 8: Technical verification
 
-Every specialized Gear must carry **unit verification** that keeps the logic remains resilient across releases.
+Every specialized Gear must carry **unit verification**. The verification keeps the logic resilient across releases.
 
 ```go
 // pkg/gears/native/my_gear/gear_test.go
@@ -287,11 +285,11 @@ func TestGear_Process(t *testing.T) {
 ```
 
 > [!IMPORTANT]
-> **Zero-Loss Shutdown**: Always implement the `Drain` and `Stop` hooks. The `Drain` phase signals the logic to stop accepting new signals while finishing work-in-progress, ensuring a graceful institutional handover.
+> **Zero-loss shutdown**: Always implement the `Drain` and `Stop` hooks. The `Drain` phase signals the logic to stop accepting new signals. It finishes work-in-progress. This ensures a graceful institutional handover.
 
 ---
 
-## Integration: Deployment to the rack
+## Integration: deployment to the rack
 
 Once registered in the `Factory`, deploy your Gear by defining it in `fluxrig.toml`:
 
@@ -304,4 +302,4 @@ config = { mode = "server", bind = "0.0.0.0:8000" }
 targets = ["logic_processor"]
 ```
 
-If you see your signal pulses flowing through the **[Observability Dashboard](../architecture/observability.md)**, you have successfully deployed a production-grade protocol driver to the Sovereign Edge.
+If you see your signal pulses flowing through the **[Observability Dashboard](../architecture/observability.md)**, you deployed a production-grade protocol driver to the Sovereign Edge.

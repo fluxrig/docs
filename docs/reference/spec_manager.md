@@ -22,12 +22,12 @@ data/store/
 │       └── d4e5f6...
 ```
 
-- **CAS store**: Each artifact (spec or scenario YAML) is hashed with SHA-256 and stored as an immutable blob. The hash is the address: the same bytes always resolve to the same blob, and changed bytes are a different artefact rather than a new version of the same one.
-- **Index**: A JSON file mapping logical `name → tag → hash`, supporting both Specs and Scenarios.
+- **CAS store**: The system hashes each artifact (spec or scenario YAML) with SHA-256 and stores it as an immutable blob. The hash is the address. The same bytes always resolve to the same blob. Changed bytes are a different artefact rather than a new version of the same one.
+- **Index**: A JSON file maps logical `name → tag → hash`. It supports both Specs and Scenarios.
 
 ## URN scheme
 
-Artifacts are referenced using the short `name:tag` format:
+Reference artifacts with the short `name:tag` format:
 
 | Format | Example | Resolution |
 | :--- | :--- | :--- |
@@ -36,7 +36,7 @@ Artifacts are referenced using the short `name:tag` format:
 | `sha256:hash` | `sha256:a1b2c3...` | Direct CAS blob lookup. |
 
 > [!NOTE]
-> **Resolution Timing**: URNs are resolved **on boot or reload**. If a gear is configured with `visa:latest`, it grabs the newest version available at the moment it starts. Importing a newer version into the store later does *not* automatically hot-swap the active gear; a scenario restart is required.
+> **Resolution timing**: The system resolves URNs **on boot or reload**. If you configure a gear with `visa:latest`, it grabs the newest version available at the moment it starts. Importing a newer version into the store later does *not* automatically hot-swap the active gear. You need a scenario restart.
 
 > [!NOTE]
 > Tags must follow [Semantic Versioning](https://semver.org) (e.g., `v1.0.0`, `v2.1.3`).
@@ -55,17 +55,16 @@ fluxrig spec import card_schema.yaml --name visa --tag v1.0.0
 fluxrig scenario import payment_flow.yaml --name payment-flow --tag v1.0.0
 ```
 
-If `--name` and `--tag` are omitted, they come from the document itself: a spec
-declares `spec.id` and `spec.version`, a scenario declares `meta.name` and
-`meta.version`. A spec's `spec.name` is its human title and is not used as the
-reference: "ISO 8583:1987 (ASCII)" is not something to put in a `name:tag`. A version written as `2.2.0` is filed as `v2.2.0`. Only a
-document that declares no version at all falls back to auto-incrementing the
+If you omit `--name` and `--tag`, they come from the document itself: a spec
+declares `spec.id` and `spec.version`, and a scenario declares `meta.name` and
+`meta.version`. A spec's `spec.name` is its human title, and the system does not use it as the
+reference: do not put "ISO 8583:1987 (ASCII)" in a `name:tag`. The system files a version written as `2.2.0` as `v2.2.0`. Only a
+document that declares no version at all causes the system to auto-increment the
 minor from the latest existing tag.
 
 Importing identical content again is idempotent: the same bytes stay one
-artefact under one tag. A document claiming a version that already names
-different content is **refused**, because a version identifies one set of bytes
-or it identifies nothing. That is what makes a tag usable as a deployment
+artefact under one tag. The system **refuses** a document that claims a version which already names
+different content. A version identifies one set of bytes, or it identifies nothing. That is what makes a tag usable as a deployment
 reference.
 
 ### List and history
@@ -77,8 +76,8 @@ fluxrig spec history iso8583-v87-ascii   # every version of one spec
 fluxrig scenario list
 ```
 
-A listing carries what the store recorded at import: when each version was filed,
-its size, the document's human title, and which version a reference without a tag
+A listing carries what the store recorded at import. It shows when the system filed each version. It shows
+its size. It shows the document's human title. It shows which version a reference without a tag
 resolves to.
 
 ```
@@ -86,16 +85,15 @@ NAME               VERSION          IMPORTED              SIZE     HASH         
 iso8583-v87-ascii  v2.2.0 (latest)  2026-09-06 18:47 UTC  33.6 KB  256e09885b96  ISO 8583:1987 (ASCII)
 ```
 
-A history is ordered by version, newest first, and **not** by arrival: a patch to
-an older branch is imported after a newer release without being newer than it.
+The system orders a history by version, newest first, and **not** by arrival. It imports
+a patch to an older branch after a newer release without making it newer than the release.
 
-An artefact filed before the store recorded dates shows `unrecorded` rather than
+An artefact that the system filed before the store recorded dates shows `unrecorded` rather than
 a guess.
 
 ### A spec states a contract
 
-A spec must declare `spec.id` and `spec.version`, and a spec missing either is
-refused when it loads: at boot, with a message naming the spec, never per
+A spec must declare `spec.id` and `spec.version`. The system refuses a spec that misses either when it loads: at boot, with a message naming the spec, never per
 transaction.
 
 Every message carries three stamps, and they answer different questions:
@@ -108,7 +106,7 @@ Every message carries three stamps, and they answer different questions:
 
 ## Reading a stored spec
 
-The Mixer serves what its store holds, including the protocol reference rendered
+The Mixer serves what its store holds, including the protocol reference that it renders
 from it:
 
 ```
@@ -122,23 +120,21 @@ The reference takes `?scope=public|complete` and `?format=html|markdown`. It
 defaults to **public**, which omits fields the spec marks `scope: private`,
 because the endpoint carries no authentication of its own.
 
-The reference is derived on each request rather than stored, so it cannot fall
-behind the spec. The same document is rendered locally by
-[`fluxrig spec doc`](cli.md).
+The Mixer derives the reference on each request rather than storing it, so it cannot fall
+behind the spec. [`fluxrig spec doc`](cli.md) renders the same document locally.
 
 ## Mixer integration
 
 The Mixer uses the manager at startup to resolve `name:tag` scenario references (see [Scenario Reference](scenario.md#startup-resolution)). The resolution flow:
 
 1. Parse the reference string.
-2. If it contains `/` → treat as file path, read from disk.
-3. If empty → resume last active scenario from the store.
-4. Otherwise → open `data/store/`, call `manager.Load(urn)` to resolve `name:tag` from the CAS.
+2. If it contains `/`, treat it as a file path. Read it from disk.
+3. If it is empty, resume the last active scenario from the store.
+4. Otherwise, open `data/store/`. Call `manager.Load(urn)` to resolve `name:tag` from the CAS.
 
 ## How a scenario names a spec
 
-A scenario names specs per gear, in the gear's own configuration. There is no
-scenario-wide spec:
+A scenario names specs per gear, in the gear's own configuration. No scenario-wide spec exists:
 
 ```yaml
 gears:
@@ -151,12 +147,8 @@ gears:
 
 At deploy time the Mixer reads those references, resolves them against its own
 store, and sends the artefacts **with** the scenario. The Rack files them in its
-own store before applying the scenario, because a gear resolves its spec while
-initialising. Two Racks given one scenario therefore compile the same bytes, which a
-path cannot promise that, since it resolves against whatever each Rack happens to
-hold at that location.
+own store before it applies the scenario, because a gear resolves its spec while it initialises. Two Racks that receive one scenario therefore compile the same bytes. A path cannot promise this, since it resolves against whatever each Rack happens to hold at that location.
 
 If the Mixer cannot resolve something a scenario names, it warns and deploys
 anyway. The Rack then reports the unresolvable reference by the name the scenario
-actually used, which is more use than a deployment refused over a spec only the
-Mixer could not find.
+actually used. This is more use than a deployment that the Mixer refused over a spec it could not find.

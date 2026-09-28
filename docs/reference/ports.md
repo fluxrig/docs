@@ -12,7 +12,7 @@ This document serves as the authoritative reference for network port assignments
 
 ## Network port registry
 
-To prevent conflicts and ensure consistent test automation, the following port namespaces are reserved:
+To prevent conflicts and ensure consistent test automation, the project reserves the following port namespaces:
 
 By default, fluxrig components communicate using the following standard ports:
 
@@ -33,12 +33,12 @@ By default, fluxrig components communicate using the following standard ports:
 
 ## Nomenclature standards
 
-### Project Branding
+### Project branding
 *   **Formal Name**: `fluxrig` (Always lowercase in text, headings, and filenames).
 *   **Avoid**: `Flux`, `FluxRig` (PascalCase), and `FLUXRIG` (uppercase, except in ENV var names like `FLUXRIG_*`).
 
-### Technical Identifiers
-We use the abbreviated `flux.` prefix for internal system primitives to maintain brevity in high-volume streams:
+### Technical identifiers
+We use the abbreviated `flux.` prefix for internal system primitives to keep names brief in high-volume streams:
 
 *   **NATS Subjects**: `flux.msg.>`, `flux.telemetry.>`, `flux.ctrl.>`
 *   **Log Attributes**: `flux.type`, `flux.name`, `flux.id`
