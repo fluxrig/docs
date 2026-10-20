@@ -74,7 +74,7 @@ A gear never writes the payload of a message to a log at INFO or DEBUG. At TRACE
 
 A Rack identity does not depend on a live connection to the Mixer: **fluxrig** uses a **Sovereign Identity** model.
 
-*   **The Passport (`state.flux`)**: The Rack does not require a real-time connection to the Mixer to check its own integrity. It holds a signed state bundle (The Passport) on-site.
+*   **The Passport (`rack.flux`)**: The Rack does not require a real-time connection to the Mixer to check its own integrity. It holds a signed state bundle (The Passport) on-site.
 *   **Cluster Authority**: The root of trust is the **Cluster Authority Key**. In the current release, this is a **file-based Ed25519 keypair**.
 *   **Immutable Integrity**: On boot, the Rack loads its Passport. It verifies the internal configuration signature against the cluster public key.
 *   **Failed scenario**: a scenario that fails to apply stops the gears it started. The Rack keeps the copy of the last scenario it applied successfully. Automatic return to that copy is `[Roadmap]`.
@@ -111,12 +111,12 @@ While the current release uses secure file-based keys, the roadmap includes nati
 | Feature Area | Status | Implementation Strategy |
 | :--- | :--- | :--- |
 | **mTLS Tunnel** | **Available** | Outbound secure tunnel (TLS 1.2+ Baseline). |
-| **Sovereign ID** | **Available** | Signed State Envelopes (`state.flux`). |
+| **Sovereign ID** | **Available** | Signed State Envelopes (`rack.flux`). |
 | **Field Masking** | **Planned**   | Deterministic PII scrubbers (future). |
 | **Cloud KMS** | **Planned**   | AWS/Google KMS integration for Authority keys. |
 | **Wasm Execution** | **Available** | Sandboxed execution runtime (wazero), shipped in v0.6.x. |
-| **Audit Logging** | **Available** | Local CBOR WAL + DuckDB Registry. |
-| **Binary Signing** | **Planned** | Supply chain trust via Sigstore/Cosign. |
+| **Audit Log persistence** | **Available** | Local CBOR WAL + DuckDB Registry. The storage of what happened; an operational surface over it (console, RBAC) is commercial. |
+| **Binary Signing** | **Planned** | Supply chain trust via Sigstore/Cosign. Not built: no release or CI step signs today. |
 | **SBOM Generation** | **Planned** | Automated CycloneDX generation per release. |
 
 > [!IMPORTANT]

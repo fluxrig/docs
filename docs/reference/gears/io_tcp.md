@@ -14,6 +14,7 @@ excerpt: Generic TCP I/O with delimiter-based framing (ingress/egress).
  *   **Connection lifecycle** (Listen/Dial, Reconnect, Timeouts).
  *   **Framing** (Splitting specific byte streams into discrete messages).
  *   **Idle Timeouts** (Automatic session cleanup. Configured by `idle_timeout`, default `60s`).
+ *   **Link state** (client mode): the gear publishes `conn.up` when its connection opens and `conn.down` when it closes, on the Control Plane at `link.<gear name>`. A [Conductor](conductor.md#binding-destinations-to-link-state) whose port ends at this gear uses them to know whether the port can receive traffic.
  *   **TLS termination** (Server-side & mTLS 1.3 - **[Roadmap]**).
  *   **Buffers** (Read/Write buffering to prevent stalling).
 

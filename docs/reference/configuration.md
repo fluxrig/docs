@@ -23,11 +23,20 @@ Top-level overrides for troubleshooting:
 * `FLUXRIG_DEBUG=true`: Forces all logging to DEBUG level.
 * `FLUXRIG_DISABLE_TELEMETRY=true`: Master switch to stop all self-monitoring reporting.
 
+## Validation at startup
+
+Both binaries validate their configuration when they load it, and refuse to start on either of these:
+
+* **A duration that does not parse.** Every setting whose value is a duration (its name ends in `_timeout`, `_interval`, `_wait`, `_delay`, `_age`, `_duration` or `_ttl`) is parsed at load time. A typo such as `operation_timeout = "5 seconds"` fails the start and names the field. Before this check, a bad duration could reach a consumer that ignored the parse error and treated zero as real, which fires the timer immediately.
+* **A key that maps to no setting.** A misspelled section or field, such as `[observabilitty]`, fails the start and names the key. Before this check, the key was ignored and the process ran with a default the operator meant to override.
+
+Some keys are read by the loader itself rather than by a struct field, and are accepted: the Rack's `rack.bus.*` and legacy `bus.*` aliases, `store.state_file` and `store.scenario_file`, and the Mixer's `mixer.mixer_name`.
+
 ## Secret management
 **fluxrig** does not store secrets in plaintext TOML. For sensitive values (e.g., database passwords, API keys):
 
 1. Use Environment Variables at runtime (`FLUXRIG_STORE_DATABASE_PASSWORD`).
-2. Use the **[State Envelope (Passport)](security_reference.md#identity-envelopes-stateflux)**: secrets are carried in the signed envelope rather than in plaintext TOML. The envelope is cryptographically **signed** (Ed25519); at-rest **encryption** is not yet implemented (see the security reference).
+2. Use the **[State Envelope (Passport)](security_reference.md#identity-envelopes-rackflux)**: secrets are carried in the signed envelope rather than in plaintext TOML. The envelope is cryptographically **signed** (Ed25519); at-rest **encryption** is not yet implemented (see the security reference).
 
 ---
 
@@ -87,6 +96,10 @@ Rack-specific settings.
 | `drain_timeout` | `string` | `"35s"` | How long in-flight messages are given to finish on shutdown before gears are stopped. |
 | `lane_queue_size` | `int` | `1024` | Messages each [hot lane](scenario.md#lanes) wire holds in memory between the gear that emits and the gear that consumes. |
 | `lane_send_timeout` | `string` | `"5s"` | How long a gear that emits waits for room in a full hot lane queue before it gets an error. |
+| `outbox_max_messages` | `int` | `10000` | Bus-bound emissions parked in memory while the bus is down, forwarded when it returns. When full the oldest is dropped and counted; the gear is never blocked. |
+| `outbox_drain_retries` | `int` | `3` | More attempts the drain makes on a parked emission the bus refuses before it moves on. The emission stays parked for the next drain. Only an emission the bus can never accept is dropped. |
+| `outbox_order` | `string` | `"subject"` | Drain order. `subject` never forwards an emission ahead of an older one on the same subject. `none` forwards whatever the bus takes, in the order the bus takes it. |
+| `outbox_backpressure_timeout` | `string` | `"1s"` | With `subject` order, how long a live emission waits for older parked messages on its subject to drain while the bus is up. Then it goes to the bus, or parks behind them if the wait ends first. The wait slows the gear to the drain's pace, so the outbox does not fill and drop messages. With the bus down, nothing waits. `"0s"` turns the wait off. |
 | `cleanup_timeout` | `string` | `"2s"` | Grace given to release resources after draining. |
 | `bootstrap_secret` | `string` | `"fluxrig"` | Shared secret this Rack presents on its very first Hello, before it has a Passport of its own. Must match the Mixer's `enrollment.bootstrap_secret`. Once enrolled, the Rack presents its own per-Rack secret instead; this only matters for that first contact. |
 
@@ -197,8 +210,8 @@ General Mixer settings.
 > [!NOTE]
 > **Changed**: the static `machine_id` configuration field is gone from both Rack and Mixer configurations, and is no longer read. **fluxrig** now enforces a **Registry-First Enrollment Model**. 
 > 
-> *   **Racks**: Dynamically receive a 128-bit `uuid.UUID` Identity during the Enrollment Handshake, which is cryptographically signed and stored in the local `state.flux` passport.
-> *   **Mixers**: Automatically generate a persistent cluster identity (UUID v7) on their first boot, which is maintained in the internal Unified Registry (`registry`).
+> *   **Racks**: Dynamically receive a 128-bit `uuid.UUID` Identity during the Enrollment Handshake, which is cryptographically signed and stored in the local `rack.flux` passport.
+> *   **Mixers**: Automatically generate a persistent cluster identity (UUID v7) on their first boot, which is recorded in the registry bucket (see `[Registry]`).
 
 #### `[Enrollment]` (Mixer)
 Control how new Racks are admitted to the rig.
@@ -208,6 +221,20 @@ Control how new Racks are admitted to the rig.
 | `auto_adopt` | `bool` | `false` | If `true`, any new Rack connecting will be immediately set to `active`. Use cautiously in production. |
 | `push_delay` | `string` | `"1s"` | Delay before pushing the initial scenario to a newly adopted Rack. |
 | `bootstrap_secret` | `string` | `"fluxrig"` | Shared secret for zero-config enrollment and identity adoption. It ships with a known value, so a deployment that does not set it is running the documented one. |
+
+#### `[Registry]` (Mixer)
+Where the Mixer keeps Rack records, the name index, scenario files and the active-scenario pointer, and how long a Rack counts as online. Both buckets live in the embedded NATS server's store (`snake.store_dir`). See [Identity & registry](registry.md).
+
+| Field | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `bucket` | `string` | `"fluxrig_registry"` | Key-value bucket for records, names, scenario files and the active pointer. |
+| `liveness_bucket` | `string` | `"fluxrig_liveness"` | Key-value bucket for presence. Must differ from `bucket`. |
+| `replicas` | `int` | `1` | Replica count of both buckets. At least 1. |
+| `max_value_size` | `int` | `1048576` | Largest record in bytes, headers included. It bounds a scenario file: a larger one is refused on import. |
+| `liveness_ttl` | `string` | `"90s"` | How long after its last heartbeat a Rack still counts as online. Three heartbeat intervals by default. |
+| `write_retries` | `int` | `3` | How many times a registry write that met a concurrent one is read again and retried before it fails. `0` fails on the first conflict. |
+| `sweep_interval` | `string` | `"10m"` | How often the Mixer repairs what a crash between two registry writes left behind. It also sweeps once at startup. |
+| `orphan_min_age` | `string` | `"5m"` | How old a registry record must be before the sweep treats it as left behind rather than in progress. |
 
 #### `[Ingest]` (Mixer)
 Telemetry ingestion buffering and flushing. Neither field is read today: the Mixer flushes telemetry to persistent storage every `telemetry.batch_interval` (default `5s`).
@@ -239,11 +266,11 @@ Where signed Wasm gears and the keys that verify them are kept.
 | `trusted_keys_dir` | `string` | `"./data/wasm/keys"` | Public keys a module's signature is checked against. |
 
 #### `[Store]` (Mixer)
-Data storage settings (Analytics/Registry).
+Local data storage: telemetry, and the topology rows derived from the active scenario. The registry itself is in `[Registry]`.
 
 | Field | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `database_file` | `string` | `"fluxrig.duckdb"` | DB filename (relative to store dir). |
+| `database_file` | `string` | `"flux.duckdb"` | DB filename (relative to store dir). |
 | `cluster_key_file` | `string` | `"cluster.key"` | Key filename (relative to store dir). |
 
 #### `[Snake]`
@@ -254,16 +281,50 @@ Embedded NATS Server (JetStream) settings.
 | `port` | `int` | `4222` | **Server Port** to listen on for NATS connections. |
 | `url` | `string` | `"nats://localhost:4222"` | URL to advertise to Racks. |
 | `domain` | `string` | `"flux"` | JetStream Domain Name. |
+| `cluster_name` | `string` | `"flux"` | JetStream domain the embedded server reports, and what a client uses to reach a domain-scoped server. |
+| `store_dir` | `string` | `"./data/snake"` | Where the embedded server keeps its JetStream store. Empty keeps the default, a `snake` directory under `store.dir`. |
 | `stream_name` | `string` | `"flux-msg"` | Name of the primary JetStream stream. |
 | `stream_subjects` | `[]string` | `["flux.msg.>", "flux.gear.>", "fluxrig.>"]` | Wildcard subjects to capture. |
 | `business_stream_max_age` | `string` | n/a | **[Roadmap]** Not read today. The age limit of the message stream is `stream_max_age`, below. |
 | `telemetry_stream_max_age` | `string` | n/a | **[Roadmap]** Not read today. |
 | `durable` | `bool` | n/a | **[Roadmap]** Not read today. The bus stores its data on disk. |
+| `dlq_enabled` | `bool` | `true` | Route a message no consumer could process to the dead letter stream instead of dropping it. Off keeps the old behavior: log and discard. |
+| `dlq_subject` | `string` | `"flux.dlq"` | Subject prefix the dead letter stream captures. A failed message is republished as `<prefix>.<origin-subject>`. |
+| `dlq_max_age` | `string` | `"720h"` | How long a dead letter is kept. Empty keeps the stream default (`24h`). |
 
 > [!NOTE]
 > The Mixer starts this server itself on every boot. There is no setting that
 > points it at an existing NATS deployment, so these fields move the bus, they
 > do not replace it.
+
+### Dead letter queue
+
+A message no consumer can process is not lost. The Mixer provisions a
+`flux-dlq` stream beside the message and telemetry streams, and the bus
+republishes the unprocessable message there. It is the answer to the three
+paths that used to drop a message with only a log line:
+
+- The payload does not decode.
+- The payload decodes but fails validation.
+- The handler fails on every redelivery, up to the redelivery bound.
+
+The stored message keeps the original bytes unchanged, so a replay is
+byte-identical. The failure context is in headers:
+
+| Header | Meaning |
+| :--- | :--- |
+| `Flux-DLQ-Origin-Subject` | The subject the message was being consumed from. |
+| `Flux-DLQ-Reason` | `decode`, `validate`, or `redelivery-exhausted`. |
+| `Flux-DLQ-Deliveries` | The delivery count when it was routed. |
+| `Flux-DLQ-At` | When it was routed, in RFC 3339. |
+
+To replay one, read `flux.dlq.>` (with the `nats` tool or a small
+subscriber), fix the cause, and republish the original bytes to
+`Flux-DLQ-Origin-Subject`. Set `snake.dlq_enabled = false` to keep nothing.
+
+The dead letter stream's subject must not fall under the message stream's
+subjects (`flux.msg.>`, `flux.agent.>`, `flux.rack.>`, `flux.ctrl.>`), or
+the stream cannot be created. The default `flux.dlq` does not overlap.
 
 #### Example (Mixer)
 
@@ -323,7 +384,9 @@ Settings for the Embedded tier (DuckDB + Parquet).
 | :--- | :--- | :--- | :--- |
 | `data_dir` | `string` | n/a | **[Roadmap]** Not read today. Telemetry is stored under the directory of `[Store]`. |
 | `flush_interval` | `string` | n/a | **[Roadmap]** Not read today. See `telemetry.batch_interval`. |
-| `retention_days` | `int` | n/a | **[Roadmap]** Not read today: nothing removes old telemetry files, so plan the disk for them or remove them by hand. |
+| `retention_days` | `int` | `30` | Delete Parquet files older than N days. Read by the retention sweep. When it is positive it wins over `rotation.max_age_days`. |
+
+The retention sweep runs once when the Mixer starts and then at `rotation.check_interval`. It deletes `.parquet` files only, by the timestamp in the file name, falling back to the file's modification time. It does not delete rows from the DuckDB `telemetry_*` tables, so those tables keep their rows and must be managed separately.
 
 #### `[Observability.embedded.storage]` **[Roadmap]**
 Storage format and organization. None of these settings is read today: telemetry is written as Parquet.
@@ -334,15 +397,15 @@ Storage format and organization. None of these settings is read today: telemetry
 | `partition_by` | `string` | `"hour"` | Time partitioning: `hour`, `day`. |
 | `compression` | `string` | `"zstd"` | Compression: `zstd`, `snappy`, `none`. |
 
-#### `[Observability.embedded.rotation]` **[Roadmap]**
-Rotation and retention policies. None of these settings is read today, and neither is `retention_days` in `[Observability.embedded]`: nothing removes old telemetry files.
+#### `[Observability.embedded.rotation]`
+Retention settings for local Parquet files. `check_interval` and `max_age_days` are read today. `policy` and `max_size_gb` are **[Roadmap]**.
 
 | Field | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `policy` | `string` | `"time"` | Rotation policy: `time`, `size`, `both`. |
-| `max_age_days` | `int` | `30` | Delete data older than N days. |
-| `max_size_gb` | `int` | `10` | Max total storage size in GB. |
-| `check_interval` | `string` | `"1h"` | How often to check rotation rules. |
+| `policy` | `string` | `"time"` | **[Roadmap]** Rotation policy: `time`, `size`, `both`. Retention is age-based today. |
+| `max_age_days` | `int` | `30` | Delete data older than N days. Used only when `retention_days` is not positive. |
+| `max_size_gb` | `int` | `10` | **[Roadmap]** Not read today. A size cap is not implemented. |
+| `check_interval` | `string` | `"1h"` | How often the retention sweep runs. The sweep also runs once at Mixer startup. |
 
 #### `[Store]` (embedded)
 

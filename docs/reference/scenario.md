@@ -139,13 +139,15 @@ gears:
 
 If a gear does not specify a `deploy` target, the system treats it as a **Global Gear**. 
 
-*   **Behavior**: The Mixer pushes the gear to **every Rack** that connects to it and receives the scenario.
+*   **Behavior**: The gear runs on **every active Rack**. When you activate the scenario, the Mixer pushes it to every Rack that is active at that moment. A Rack that enrolls later receives it when it enrolls.
 *   **Use case**: Use this for "Zero-Config" Getting Started scenarios. Use it to deploy universal monitoring/diagnostic gears across a distributed cluster without knowing the dynamic Rack names in advance.
 
 The Mixer validates a gear that names a `deploy` target at activation. The target must
 exist as an active Rack in the registry. If not, activation fails. The failure names the target. Import
 stays permissive, so you can file a scenario before its Racks enroll. A scenario
-with no push targets activates into nothing, which the Mixer logs as a warning.
+with no push targets activates into nothing, which the Mixer logs as a warning. A
+scenario with global gears and no active Rack is the exception: it waits for the
+first Rack to enroll.
 
 ## Pipe configuration
 

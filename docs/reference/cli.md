@@ -25,7 +25,7 @@ The unified tool for operators and edge runtimes.
 | Command | Description |
 |---------|-------------|
 | `fluxrig keys gen-cluster` | Generate a new Cluster Authority keypair |
-| `fluxrig keys inspect <path>` | Inspect a state.flux Passport file |
+| `fluxrig keys inspect <path>` | Inspect a Passport file (`rack.flux` by default) |
 
 **Flags for `gen-cluster`**:
 
@@ -79,7 +79,7 @@ Specs are governed by a [Content-Addressable Store (CAS)](spec_manager.md#cas).
 
 | Command | Description |
 |---------|-------------|
-| **`import <file>`** | Snapshot a local YAML spec into the CAS. |
+| **`import <file>`** | Snapshot a local YAML spec or lookup data into the CAS. With `--api`, upload it to the running Mixer. |
 | **`list`** | Every spec the store holds, with when each version was filed, its size and its title. |
 | **`history <name>`** | Every version of one spec, newest first by version rather than by arrival. |
 | **`export <urn> <file>`** | Write a CAS spec back to a local file. |
@@ -95,8 +95,12 @@ fluxrig spec history iso8583-v87-ascii
 **Flags for `import`**:
 
 - `--name` - Logical name (e.g., `visa`). If you omit it, it comes from `spec.id`.
-- `--tag` - Semantic version (e.g., `v1.0.0`). If you omit it, it comes from `spec.version`.
+- `--tag` - Semantic version (e.g., `v1.0.0`). If you omit it, it comes from `spec.version`. Lookup data declares neither, so give both.
 - `--store-dir` - CAS store location (default: `~/.fluxrig/store`)
+- `--api` - Upload to the running Mixer's store instead. The Mixer checks the artefact and sends it to the Racks with each scenario that names it. See [Uploading to the Mixer](spec_manager.md#upload).
+- `--api-url` - Mixer API URL (default: `FLUXRIG_API_URL`, then `http://localhost:8090`)
+- `--api-token` - Bearer token for the Mixer API (default: `FLUXRIG_API_TOKEN`)
+- `--api-timeout` - How long to wait for the Mixer to answer (default: `30s`)
 
 **Flags for `list` and `history`**:
 
@@ -158,12 +162,16 @@ fluxrig scenario import main.yaml --name dev --tag v1.0.0
 # Hot-Reload via Mixer API
 fluxrig scenario import main.yaml --api
 
+# Import and deploy
+fluxrig scenario import main.yaml --api --activate
+
 # Diff local against active
 fluxrig scenario diff main.yaml
 ```
 
 **Flags for `import`**:
 - `--api` - Sync with Mixer API immediately
+- `--activate` - With `--api`: activate the scenario after the import, which deploys it to its Racks. Upload the specs that it names first.
 - `--store-dir` - CAS store location (default: `~/.fluxrig/store`)
 
 **Visualising a scenario**:

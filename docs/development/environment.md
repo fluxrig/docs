@@ -29,7 +29,7 @@ This guide provides the architectural roadmap to navigate the **fluxrig** reposi
 │   ├── snake/          # The embedded NATS JetStream server
 │   ├── bus/            # The Bus interface over it, mockable in tests
 │   ├── pki/            # Ed25519 cluster key, passports, envelopes
-│   ├── store/          # DuckDB registry and telemetry persistence
+│   ├── store/          # DuckDB telemetry and topology persistence
 │   ├── telemetry/      # OpenTelemetry provider, batching, WAL
 │   ├── viz/            # Generated views: protocol reference, LikeC4
 │   ├── wasm/           # Wasm catalog and signature verification
@@ -109,7 +109,7 @@ To ensure deterministic builds across the engineering fleet, all workstations mu
 *   **Compiler**: Go 1.26+ (Strictly enforced via `go.mod`).
 *   **Linters**: `golangci-lint` v1.60+ and `gosec` for security audits.
 *   **Infrastructure**: Docker with **Testcontainers** support for Tier B/C validation.
-*   **Cryptography**: **Cosign** for artifact signing and verification.
+*   **Cryptography**: **Cosign** for artifact signing and verification. **[Planned]** Not used today: no release or CI step signs with it yet (see the security roadmap). Listed here as the intended tool, not as present toolchain.
 
 > [!NOTE]
 > **Technical autonomy**: The project designs the **fluxrig** repository for **Air-Gap Readiness**. It vendors all critical dependencies or makes them manageable via local caching, ensuring the Factory can operate without external internet dependencies.

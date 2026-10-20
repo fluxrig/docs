@@ -15,6 +15,7 @@ The **Spec & Scenario Manager** provides a local, Git-friendly registry for Spec
 ```
 data/store/
 ├── index.json         # name → tag → hash mapping
+├── index.lock         # serializes concurrent index writers
 ├── blobs/             # SHA-256 content blobs (sharded)
 │   ├── a1/
 │   │   └── a1b2c3...
@@ -24,6 +25,8 @@ data/store/
 
 - **CAS store**: The system hashes each artifact (spec or scenario YAML) with SHA-256 and stores it as an immutable blob. The hash is the address. The same bytes always resolve to the same blob. Changed bytes are a different artefact rather than a new version of the same one.
 - **Index**: A JSON file maps logical `name → tag → hash`. It supports both Specs and Scenarios.
+- **Concurrent writers**: A CLI and a Mixer can import at the same time against one store. An import takes a lock on `index.lock`, re-reads the index, merges its own entry into what is on disk, and replaces the file atomically. Two imports therefore both keep their versions, and a reader never sees a half-written index.
+- **A running Mixer reads its index when it starts.** It does not see a version that a CLI imports into its store directory later. To add an artefact to a running Mixer, [upload it through the API](#upload).
 
 ## URN scheme
 
@@ -82,7 +85,7 @@ resolves to.
 
 ```
 NAME               VERSION          IMPORTED              SIZE     HASH          TITLE
-iso8583-v87-ascii  v2.2.0 (latest)  2026-09-06 18:47 UTC  33.6 KB  256e09885b96  ISO 8583:1987 (ASCII)
+iso8583-v87-ascii  v3.0.0 (latest)  2026-10-20 14:58 UTC  32.4 KB  0f4aa6aad084  ISO 8583:1987 (ASCII)
 ```
 
 The system orders a history by version, newest first, and **not** by arrival. It imports
@@ -122,6 +125,44 @@ because the endpoint carries no authentication of its own.
 
 The Mixer derives the reference on each request rather than storing it, so it cannot fall
 behind the spec. [`fluxrig spec doc`](cli.md) renders the same document locally.
+
+## Uploading to the Mixer {#upload}
+
+The Mixer sends with a scenario the artefacts that the scenario names by store reference, so that each Rack resolves them from its own store. Upload an artefact to the Mixer before you activate a scenario that names it:
+
+```bash
+export FLUXRIG_API_TOKEN=<api.auth_token>
+fluxrig spec import --api specs/iso8583-v87-ascii.yaml
+fluxrig spec import --api --name billers --tag v1 lookups/billers.yaml
+```
+
+The command sends the file to `POST /api/v1/specs`. `--api-url` (or `FLUXRIG_API_URL`) names the Mixer, and the default is `http://localhost:8090`. `--api-timeout` sets how long the command waits for the answer (default `30s`).
+
+The Mixer finds the kind of the artefact from its header and checks it with the loader of that kind. It stores only an artefact that a Rack can load:
+
+| Kind | How the Mixer finds it | What the Mixer checks |
+| :--- | :--- | :--- |
+| `iso8583` | A `spec:` header, with no other kind | The [ISO8583 SDL](specs/iso8583_sdl.md) loader. |
+| `iso20022` | `spec.wire.source` names an ISO 20022 wire source | The [ISO 20022 spec](specs/iso20022_spec.md) loader. |
+| `translation` | `spec.kind: translation` | The [translation spec](gears/translate.md#the-translation-spec) loader, against the store. Each protocol spec and lookup source that the translation names must be a store reference that the store already holds. |
+| `data` | No `spec:` header | A YAML map of records, for a [lookup](gears/translate.md#lookups). Data declares no name or version, so `--name` and `--tag` are mandatory. |
+
+Upload in this order: the protocol specs and the lookup data first, then the translation specs that name them.
+
+A translation spec names further artefacts: its protocol specs and its lookup records. The Mixer sends these with the scenario too, so a Rack can run a translation with none of its files.
+
+| Answer | Meaning |
+| :--- | :--- |
+| `201` | Stored. The body gives the `urn`, the `hash` and the `kind`. Identical content uploaded again also gives `201`. |
+| `400` | The artefact does not load. The body names what is wrong. |
+| `409` | The `name:tag` already names other content. Change the version. |
+| `413` | The artefact is larger than [`mixer.max_payload_size`](configuration.md). An artefact travels to the Racks inside the scenario payload, so it cannot be larger than a payload. |
+
+Then import the scenario and activate it, which deploys it to its Racks:
+
+```bash
+fluxrig scenario import --api --activate scenarios/billpay_rtp.yaml
+```
 
 ## Mixer integration
 

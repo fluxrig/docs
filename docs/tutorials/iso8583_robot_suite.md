@@ -156,12 +156,13 @@ The **`fluxrigLibrary`** automatically renders an interactive dashboard with rea
 
 ## Step 5: How to run the suite
 
-To run this verification suite locally, open the `test/robot` directory in the `fluxrig` source. Use the standard Robot Framework CLI:
+To run this verification suite locally, run its `make` target from the root of the `fluxrig` source:
 
 ```bash
-# From ~/git/fluxrig/test/robot
-$ robot suites/iso8583/server_validation.robot
+make test-robot-validation
 ```
+
+The target builds the binaries first and runs the suite through `test/robot/run.sh`, which sets up the Python environment and refuses stale binaries. Calling `robot` directly skips both, and can test an old build.
 
 The system automatically spawns the Mixer and Rack. It executes the tests. It generates a final `log.html` and a specialized `suite_performance_summary.html` with the run's measurements.
 

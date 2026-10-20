@@ -76,7 +76,7 @@ A Rack starts from its Passport when the Mixer is unreachable. It runs the last 
 ## The control plane (Mixer)
 The **Mixer** is the central nervous system and **Project Authority** for the rig. It governs identity. It orchestrates topology updates. It aggregates telemetry.
 
-*   **The Operational Ledger (Registry)**: A hybrid source of truth that maintains node identity, security secrets, and a distributed telemetry index. It leverages **DuckDB** for active state and **Parquet partitions** for historical analysis.
+*   **The Operational Ledger (Registry)**: The source of truth for node identity and secret hashes, kept in a **JetStream key-value bucket**, with **DuckDB** for recent telemetry and **Parquet partitions** for historical analysis.
 *   **Analytics**: A telemetry engine providing real-time operational visibility through the Ledger.
 *   **Orchestrator**: Manages the deployment and hot-reloading of **Scenarios** across the fleet.
 

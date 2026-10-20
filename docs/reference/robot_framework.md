@@ -92,7 +92,7 @@ ${msg}=    Build ISO Message    0100
 ${reply}=    Send ISO Message    ${msg}    target=127.0.0.1:8583    header_len=2
 ```
 
-Name fields `f<N>` because Robot arguments cannot start with a digit. The library emits only the primary bitmap, covering fields 1 to 64. `header_len` is the size
+Name fields `f<N>` because Robot arguments cannot start with a digit. The library emits the primary bitmap for fields 1 to 64. When a field above 64 is present, it also emits the secondary bitmap and sets bit 1. With `bitmap=hex`, each bitmap is 16 hex characters. `header_len` is the size
 of the big-endian length prefix that frames the message. It matches the gear's
 `frame_length_size`.
 
@@ -175,6 +175,7 @@ make test-robot
 make test-robot-iso
 make test-robot-roaming
 make test-robot-conductor
+make test-robot-billpay
 ```
 
 `make help` lists them all. The load and chaos suites (`test-robot-perf`,

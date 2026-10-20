@@ -61,8 +61,8 @@ Sessionless context correlation: parks fields under a key on store, restores the
 |---|---|---|---|---|
 | `bucket` | string | yes | - | NATS KV bucket that holds the parked context. |
 | `mode` | enum: `store`, `restore`, `daemon` | yes | - | store parks fields under the key; restore reattaches them on the matching reply; daemon governs a bucket's TTL. |
-| `await_store` | boolean |  | `true` | store mode: whether the message waits for the entry to be written. True when the reply depends on it (a stripped field that must be reattached). False when the entry only enriches a record, so a slow control plane cannot hold or fail the message; a failed write is logged and the entry is lost. |
-| `default_ttl` | string |  | `1m` | how long a parked entry lives before expiry, e.g. '30s'. |
+| `await_store` | boolean |  | `true` | store mode: whether the message waits for the entry to be written. True when the reply depends on it: a stripped field that must be reattached, or the connection the reply must go back to. False when the entry only enriches a record, so a slow control plane cannot hold or fail the message; a failed write is logged and the entry is lost. |
+| `default_ttl` | string |  | `1m` | how long a parked entry lives before expiry, e.g. '30s'. The entry is stored with this TTL, so it expires even if the daemon is not running. |
 | `include_values` | boolean |  | `false` | daemon mode: include the expired entry's data (expired_ctx) in the timeout event this daemon emits. A per-message TTL override (meta.coatcheck.ttl) is honored either way. |
 | `key_fields` | array |  | - | message fields whose values form the correlation key. |
 | `key_normalize` | enum: `trim`, `numeric`, `none` |  | `trim` | how key field values are canonicalized before joining: trim removes surrounding whitespace; numeric also drops leading zeros so fixed-width fields agree across differing specs; none joins them exactly as rendered. |
@@ -71,7 +71,7 @@ Sessionless context correlation: parks fields under a key on store, restores the
 | `on_missing` | enum: `error`, `drop`, `forward` |  | `error` | restore mode: what to do when no entry is found (expired/never stored): error, drop, or forward without context. Forwarding a reply with its stripped fields unrestored must be requested by name. |
 | `replicas` | integer |  | - | daemon mode: KV bucket replica count. |
 | `storage` | enum: `file`, `memory` |  | - | bucket backing store: file (durable) or memory. |
-| `store_timeout` | string |  | `5s` | store mode with await_store=false: how long the detached write may take before it is abandoned. |
+| `store_timeout` | string |  | `5s` | store mode: how long a store write may take. With await_store=true, the message fails when the write does not complete in time. With await_store=false, the detached write is abandoned. |
 | `value_fields` | array |  | - | store mode: fields (or meta.*) to park under the key and restore later. |
 <!-- AUTOGEN:manifest:coatcheck END -->
 
@@ -153,6 +153,8 @@ The Mixer manages this **Singleton** virtual gear. Only one instance runs global
 
 1. **Governance**: Responsible for creating and configuring the bucket (storage type, replicas).
 2. **Monitoring**: Detects expired keys and emits `flux.event.timeout.{bucket}` events to the Control Plane.
+
+An entry carries its own TTL in the bucket, so it expires on its own whether or not the daemon is running. The daemon's role is the **event** on expiry, not the removal: a parked entry does not sit until `max_ttl` because the daemon was slow or down.
 
 ---
 

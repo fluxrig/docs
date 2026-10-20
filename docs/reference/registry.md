@@ -17,35 +17,42 @@ No system can trust autonomous entities (Racks) to self-assign their own identit
 
 ## Architecture
 
-The Registry runs exclusively on **Mixer** nodes. It uses an embedded **DuckDB** database for long-term relational indexing, and uses the **Snake Tunnel** to distribute scenario updates and orchestration signals to edge Racks.
+The Registry runs on the **Mixer**. It keeps its state in two [JetStream key-value buckets](https://docs.nats.io/nats-concepts/jetstream/key-value-store) inside the Mixer's embedded NATS server, and it uses the **Snake Tunnel** to push scenario updates and orchestration signals to edge Racks.
 
 ```mermaid
 graph TD
     subgraph Control Plane
         API[Admin API / CLI] --> RegSVC[Registry Service]
-        RegSVC <--> DB[(DuckDB<br>registry table)]
+        RegSVC <--> KV[(fluxrig_registry<br>key-value bucket)]
+        RegSVC <--> Live[(fluxrig_liveness<br>key-value bucket)]
+        RegSVC <--> DB[(DuckDB<br>telemetry, topology)]
     end
     subgraph Data Plane
         Mixer -.->|Subject Push| RackAgent[Rack]
-        RackAgent --> StateFile[state.flux]
+        RackAgent --> StateFile[rack.flux]
     end
 ```
 
-## The `registry` table
+## What the registry keeps
 
-The primary engine of the Registry is the `registry` table inside the Mixer's DuckDB instance.
+The **registry bucket** (`registry.bucket`, default `fluxrig_registry`) holds:
 
-| Column | Type | Description |
-| :--- | :--- | :--- |
-| `entity_id` | `UUID` | **Primary Key**. The 128-bit `entity_id` containing the node type and identity hint. |
-| `type_id` | `USMALLINT` | Component Type: `2` (Mixer), `3` (Rack), `8` (Snake Tunnel). |
-| `machine_id` | `UUID` | The authoritative identity assigned to the device (UUID v7). |
-| `name` | `TEXT` | Human-readable Hostname (e.g., `rack-nyc-01`). Must be unique. |
-| `status` | `TEXT` | `active`, `pending` (awaiting enrollment), or `offline`. |
-| `version` | `TEXT` | Git SHA or SemVer of the running binary. |
-| `attributes` | `JSON` | Immutable metadata (e.g., hardware MAC, public Ed25519 key). |
-| `stats` | `JSON` | Real-time ephemeral metrics (CPU, Memory, Goroutines). |
-| `last_seen` | `TIMESTAMP` | Updated automatically via heartbeat pings. |
+| Key | Value |
+| :--- | :--- |
+| `entity.<type>.<machine_id>` | One record per Rack, Mixer and Snake: name, status, secret hash, version, address, first seen, update count. |
+| `name.<name>` | The entity that holds a name. Names are unique, and this key is what enforces it. |
+| `scenario.<name>` | An imported scenario file. |
+| `active` | The name and version of the active scenario. |
+
+The type is `2` (Mixer), `4` (Rack) or `9` (Snake). A Rack's `status` is `pending` (awaiting adoption), `active` or `inactive` (suspended).
+
+Every write that must not lose a concurrent one is a create (the key must be absent) or an update checked against the revision it read. Two Hellos that claim the same name cannot both succeed: one gets a name conflict.
+
+A registration writes the record before it claims the name. A crash between the two steps leaves a record that no name points at, or a rename halfway done. The Mixer sweeps for these at startup and every `registry.sweep_interval`. It deletes a record that never finished registering (its secret never reached a Rack), completes a rename whose new name is free or rolls it back when that name is taken, and deletes a name key whose record is gone. A record younger than `registry.orphan_min_age` is left alone, because it may still be in progress.
+
+The **liveness bucket** (`registry.liveness_bucket`, default `fluxrig_liveness`) holds one key per entity with its last heartbeat. Its entries expire after `registry.liveness_ttl`. See [Heartbeats and presence](#heartbeats-and-presence).
+
+The Mixer's DuckDB keeps telemetry and the topology rows it derives from the active scenario (the scenario, its gears, ports and wires). Each Mixer rebuilds those rows from the scenario; they are not shared.
 
 ## Enrollment & adoption lifecycle
 
@@ -66,7 +73,7 @@ This architecture ensures that telemetry and processing only begin once the Rack
 sequenceDiagram
     participant R as Rack
     participant M as Mixer
-    participant D as DuckDB Registry
+    participant D as Registry bucket
 
     R->>M: Hello (Name, IP, Version)
     M->>D: Register(Hello)
@@ -83,7 +90,7 @@ sequenceDiagram
 
 ### Adoption paths
 
-A Rack can transition from `pending` to `active` in three ways:
+A Rack can transition from `pending` to `active` in two ways:
 
 #### Path A: Auto-adoption (configuration)
 In development or lab environments, you can configure the Mixer to immediately activate any new Rack that connects. You control this in `fluxrig-mixer.toml`:
@@ -93,19 +100,24 @@ In development or lab environments, you can configure the Mixer to immediately a
 auto_adopt = true
 ```
 
-#### Path B: Adoption by scenario
-The Mixer automatically adopts a Rack if an active **Scenario** explicitly targets it. When the Mixer activates a Scenario that defines a Rack by name, the Registry promotes that Rack to `active` status and pushes the execution logic immediately.
-
-#### Path C: Manual adoption (API/CLI)
+#### Path B: Manual adoption (API/CLI)
 In high-security production environments, Racks remain `pending` until an operator explicitly approves them via the Mixer's REST API or the `fluxrig` CLI.
 
+A scenario never changes a Rack's status. Importing or activating a scenario that names a `pending` Rack does not adopt it: the scenario reaches that Rack only after it is approved.
+
 ## State distribution (push model)
-When a Rack becomes `active`, the Registry issues a **State Envelope (Passport)** that the Cluster Key signs. The Rack stores this passport locally (`state.flux`). It allows the Rack to skip enrollment in future sessions (Session Recovery).
+When a Rack becomes `active`, the Registry issues a **State Envelope (Passport)** that the Cluster Key signs. The Rack stores this passport locally (`rack.flux` by default, set by `base.state_file`). It allows the Rack to skip enrollment in future sessions (Session Recovery).
+
+The registry keeps only a SHA-256 hash of each Rack's secret. The plaintext exists once, when a fresh registration issues it, and only the first passport carries it. The Rack keeps it in a file beside its passport (`rack.flux.secret` by default), readable by the Rack's user only. Every later passport (on approval, suspension, activation or adoption) carries no secret, and the Rack keeps presenting the one it holds.
 
 > [!NOTE]
-> **Implementation detail**: In the current version, the Mixer delivers scenario updates via a high-priority **NATS Subject Push** (`flux.rack.{name}.scenario`). 
+> **Implementation detail**: the Mixer delivers scenario updates via a high-priority **NATS Subject Push** (`flux.rack.{name}.scenario`). A restarted Mixer reads the active scenario from the registry, as it was registered and sent, and reports it. It does not push it on its own. A Rack that enrolls or rejoins receives it, identical byte for byte to what that Rack received before, so a Rack that already runs it keeps its gears.
 
-**Future Roadmap (future releases)**: We currently re-implement the Registry to use **[NATS KV](https://docs.nats.io/nats-concepts/jetstream/key-value-store) [Roadmap]** for all state governance. This will move the architecture from a "Push" model to a "Distributed State Watcher" model. This increases resilience and simplifies how the system handles concurrent updates.
+`[Roadmap]` Racks watching the registry bucket for their scenario, in place of the push.
 
 ## Heartbeats and presence
-The Registry tracks cluster health by listening to heartbeats on the `flux.event.heartbeat.>` subject. Each Rack periodically emits a heartbeat containing its real-time `stats` (CPU, Memory). If a Rack misses consecutive heartbeats, the Registry marks it as `offline` in the DuckDB table.
+Each Rack publishes a heartbeat every `rack.heartbeat_interval` (30 seconds by default) to the Mixer. The heartbeat carries the Rack's secret, and the Mixer ignores one whose secret does not match.
+
+An accepted heartbeat records the Rack's presence in the liveness bucket. That entry expires after `registry.liveness_ttl` (90 seconds by default, three heartbeat intervals). The API reports each Rack as `online` while its entry exists, with `last_seen`. The Rack's real-time `stats` (CPU, Memory) stay in the memory of the Mixer that received the heartbeat.
+
+Presence is separate from status. A Rack that stops sending heartbeats stops being `online`. Its status (`pending`, `active`, `inactive`) does not change. `fluxrig admin racks list` shows both for every Rack.

@@ -83,5 +83,5 @@ Where this is taken seriously, simulation is not a one-time event. It is an inte
 
 1.  **Draft**: Engineers design a new Logic Gear or scenario topology.
 2.  **Simulate**: The team pushes the configuration to the Verification Rig. The Robot suite verifies it against thousands of edge cases.
-3.  **Sign**: Once validation passes, the team cryptographically signs the configuration. It bundles the configuration into the **Passport (`state.flux`)**.
+3.  **Sign**: Once validation passes, the team cryptographically signs the configuration. It bundles the configuration into the **Passport (`rack.flux`)**.
 4.  **Deploy**: The team distributes the signed Passport to the edge fleet through the **Snake Tunnel**. Only verified logic ever runs in production.

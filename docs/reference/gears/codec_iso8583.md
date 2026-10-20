@@ -48,13 +48,14 @@ ISO 8583 encode/decode against an SDL spec: raw wire bytes &lt;-&gt; structured 
 |---|---|---|---|
 | `in` | input | message | Message to encode or decode. |
 | `out` | output | message | Encoded or decoded message. A decode also sets iso8583.mti and iso8583.mti_class, the latter being the leading digits a request and its reply share. |
+| `error` | output | error | With on_error: reject, the message that the codec rejects, with error.reason (violation or codec_failed), error.gear and error.message. |
 
 **Configuration**
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `direction` | enum: `auto`, `encode`, `decode` |  | `auto` | encode, decode, or auto (infer from the message). |
-| `on_error` | enum: `reject`, `drop`, `kill` |  | `drop` | on a decode/encode failure, or on a message a rule rejects: reject (emit on the error path), drop (discard), or kill (fail the gear). |
+| `on_error` | enum: `reject`, `drop`, `kill` |  | `drop` | on a decode/encode failure, or on a message a rule rejects: reject (emit the message on the error port, with error.reason), drop (discard it), or kill (return the error to the runtime). |
 | `spec` | string |  | - | Legacy alias of spec_path. |
 | `spec_path` | string |  | - | The ISO 8583 SDL spec: a path to a file, or a store reference as name:tag (e.g. acme-auth:v2.2.0) or a content hash. |
 | `validation` | enum: `off`, `warn`, `enforce` |  | `off` | what the spec's semantic rules do to traffic: off (they document), warn (violations are recorded and the message goes on), or enforce (a rejecting rule fails the message, which then follows on_error). |

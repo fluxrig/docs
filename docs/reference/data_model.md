@@ -7,7 +7,7 @@ title: Data model (fluxMsg)
 
 This section details the specific wire formats (CBOR), field dictionaries, and entity identification that the **fluxrig** ecosystem uses.
 
-**Future Roadmap (future releases)**: We currently re-implement the Registry to use **[NATS KV](https://docs.nats.io/nats-concepts/jetstream/key-value-store) [Roadmap]** for all state governance. This will move the architecture from a "Push" model to a "Distributed State Watcher" model. This increases resilience and simplifies how the system handles concurrent updates.
+The Mixer keeps the registry in a JetStream key-value bucket. See [Identity & registry](registry.md).
 
 > [!NOTE]
 > For the conceptual architecture and philosophy behind these models, see the **[Architecture: Data Model](../architecture/data.md)** guide.
@@ -195,24 +195,9 @@ The Registry manages the `machine_id` allocations that make up the `entity_id`. 
 **Racks** receive their ID dynamically during enrollment. The Registry then embeds this ID into the **entity_id** (Type `0x04`).
 **Snakes** (Type `0x09`) represent the **connection path** (NATS Link) from a Rack to a Mixer. They inherit identity from their host.
 
-### Unified registry schema
+### Registry
 
-To provide one view of all infrastructure, the Mixer maintains a **Unified Registry** table (`registry`) in its embedded DuckDB. This stores `flux_id` -> `PublicKey` mappings.
-
-**Table: `registry`**
-
-| Column | Type | Description |
-| :--- | :--- | :--- |
-| `entity_id` | **`UUID`** | **PK**. Full 128-bit entity_id. |
-| `type_id` | `USMALLINT` | 2=Mixer, 3=Rack, 8=Snake. |
-| `machine_id` | **`UUID`** | The assigned Identity (128-bit). |
-| `name` | `TEXT` | Unique Hostname (e.g., `rack-01`). |
-| `status` | `TEXT` | `active`, `pending`, `offline`. |
-| `version` | `TEXT` | Build Version (e.g., `v0.1.0`). |
-| `stats` | `JSON` | Real-time metrics (e.g., CPU, Goroutines). *Note: Transported via CBOR.* |
-| `attributes` | `JSON` | Static Metadata. *Note: Transported via CBOR.* |
-| `started_at` | `TIMESTAMP` | Process start time. |
-| `last_seen` | `TIMESTAMP` | Heartbeat timestamp. |
+The Mixer keeps one record per Mixer, Rack and Snake in its registry bucket, keyed by type and `machine_id`, with a name index that keeps names unique. The type is `2` (Mixer), `4` (Rack) or `9` (Snake). [Identity & registry](registry.md) describes the keys, the records and presence.
 
 ## fluxMsg vs trace_id
 
