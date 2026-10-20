@@ -50,7 +50,7 @@ Logging is an architectural component for signal auditing, not a debugging outpu
 To ensure the long-term integrity of the **fluxMsg** data plane, we enforce **[Deterministic CBOR (RFC 8949)](https://www.rfc-editor.org/rfc/rfc8949.html)**.
 
 *   **Map Sorting**: Sort all map keys lexicographically by their encoded bytes.
-*   **Binary Identicalité**: The same logical structure must result in an identical byte-for-byte signature. This is mandatory for the **Passport (`state.flux`)** to remain cryptographically stable.
+*   **Binary Identicalité**: The same logical structure must result in an identical byte-for-byte signature. This is mandatory for the **Passport (`rack.flux`)** to remain cryptographically stable.
 *   **Unknown Field Persistence**: Gears must preserve and forward unknown fields to maintain architectural compatibility.
 
 ---

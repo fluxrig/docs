@@ -17,6 +17,8 @@ These gears are mature, optimized, and available for production use in the curre
 *   **[Coat Check gear](coatcheck.md)**: Implements the "detached state" pattern for asynchronous correlation.
 *   **[Wasm logic gear](wasm_logic.md)**: User-defined logic extensions via WebAssembly. The Filter role is available today. Polyglot source gears are roadmap.
 *   **[Conductor gear](conductor.md)**: Transaction switching, connection routing plus reply correlation over the valet ticket store. It generalizes the Coat Check.
+*   **[ISO 20022 codec gear](codec_iso20022.md)**: ISO 20022 XML to a structured fluxMsg and back, driven by a protocol spec. The first profile is `rtp`, for the RTP network of The Clearing House.
+*   **[Translate gear](translate.md)**: Translates a message between two protocol specs, alias to alias, as a translation spec says.
 
 ## Roadmap
 These gears are currently in the **Architectural Proposal** or **Early Beta** phase.

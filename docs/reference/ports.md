@@ -42,7 +42,7 @@ We use the abbreviated `flux.` prefix for internal system primitives to keep nam
 
 *   **NATS Subjects**: `flux.msg.>`, `flux.telemetry.>`, `flux.ctrl.>`
 *   **Log Attributes**: `flux.type`, `flux.name`, `flux.id`
-*   **File Extensions**: `.flux` (e.g., `state.flux` for Rack Passports)
+*   **File Extensions**: `.flux` (e.g., `rack.flux` for Rack Passports)
 *   **Data Structures**: `fluxMsg`, `FluxID` (PascalCase in Go code, camelCase in serialized JSON/CBOR).
 
 ---

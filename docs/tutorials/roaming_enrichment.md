@@ -412,13 +412,13 @@ The key is `DE 41` and `DE 11`, terminal and trace number, which is the pairing 
 
 Two details of how the key is built fail quietly rather than loudly.
 
-**Both sides must render the value the same way**. They are decoded against different specs, so the same trace number can arrive zero-padded on one side and trimmed on the other. The key is a join, so `000123` and `123` are different keys and the measurement simply stops happening. `key_normalize` settles it. `trim` (the default) strips surrounding whitespace. This scenario uses `numeric`, which also drops leading zeros. It does so because both fields have a set width and the two specs need not declare the same width.
+**Both sides must render the value the same way**. They are decoded against different specs, so the same trace number can arrive at different widths. A spec that fixes it at six digits gives `000123`. A spec that declares it variable-length gives `123`. The key is a join, so `000123` and `123` are different keys and the measurement simply stops happening. `key_normalize` settles it. `trim` (the default) strips surrounding whitespace. This scenario uses `numeric`, which also drops leading zeros. It does so because the two specs need not declare the same width, or a fixed width at all.
 
 **The message class belongs in the key.** The full MTI cannot, since a request and its reply carry different ones. The leading digits can, and the codec exposes them as `iso8583.mti_class`. Without it, an authorization and a reversal reusing a trace number are indistinguishable in the store.
 
 **And the restore must overwrite.** What is parked is not only the timestamp: it is also the connection the request arrived on. The reply is a different message, returning over the link to the authorizer, and it already carries a connection identifier of its own. Restoring without `merge_strategy: overwrite` preserves that one, so the switch has an answer and writes it into the wrong socket. The symptom is a connection that does not exist, several gears away from the setting that caused it.
 
-The store runs with `await_store: false`, so the authorization does not wait for it. The entry exists only to measure the authorizer. Blocking a payment on a write to the control plane, or failing it when that write fails, trades a payment for a metric. Losing an entry loses a measurement, which is the right thing to lose. The default is the opposite. The gear's original use reattaches a stripped field to the reply. There, forwarding before the entry exists produces a reply that can never be made whole.
+The store runs with `await_store: true`, so the authorization waits until the entry is written. The entry is not only a measurement: it carries the connection the reply must go back to, so the reply depends on it. An authorizer can answer in a few milliseconds, faster than a detached write lands. The reply then finds no entry and is lost. Or, when a trace number repeats on the same terminal within the TTL, it finds the older entry and goes to the other request's connection. A write that fails now fails the authorization, and `store_timeout` bounds how long the write may take. The key must still be unique among the requests in flight: two at once with the same key share one entry. Use `await_store: false` only when nothing on the reply path reads the entry.
 
 An unmatched reply is forwarded rather than dropped (`on_missing: forward`). The count of them is worth watching. A rising unmatched rate usually means the key is wrong, rather than that replies are missing.
 
@@ -547,14 +547,14 @@ scenario with a fleet of terminals at once.
 
 <RobotReport suite="roaming-stress" title="make test-robot-roaming-stress" />
 
-Four cases, all against the shipped scenario with `await_store: false`, the
-detached-write path that spawns one goroutine per message:
+Four cases, all against the shipped scenario, whose correlation entry is
+written before each request moves on:
 
 | Case | Shape | What it proves |
 |:---|:---|:---|
 | Sustained load, match outcome | 4 connections, 200 TPS for 15s | The match path stays correlated at a steady rate |
 | Concurrent multi-outcome | 7 terminals, 4 connections each, 60 TPS each | Every telco outcome runs at once and each reply still finds its terminal |
-| High concurrency | 7 terminals, 6 connections each, 120 TPS each | Peak goroutine pressure on the detached write, correlation intact |
+| High concurrency | 7 terminals, 6 connections each, 120 TPS each | Correlation holds at peak load on the store |
 | Mixed message classes | Authorizations and reversals over one trace range | Both classes flow together without failures |
 
 **The shape is rate, not sockets.** An issuer talks to a scheme over a handful of
@@ -631,7 +631,7 @@ class is doing work.
 | Memory and multilevel caches for the enrolment snapshot | Available |
 | Private-field outcome on the issuer leg | Available (SDL) |
 | This tutorial's scenario and suite | Available, and green |
-| This scenario under load | Measured. The [stress suite](#under-load) drives the enrichment with a fleet of terminals at up to 60-way concurrency each, with the store detached. Every reply returns to the terminal that sent it: zero cross-wiring. The switch underneath is measured separately by the [payment switch suite](payment_switch_conductor.md#non-functional-load-and-chaos) |
+| This scenario under load | Measured. The [stress suite](#under-load) drives the enrichment with seven terminals at up to 6 connections and 120 TPS each. Every request writes its correlation entry before it moves on. Every reply returns to the terminal that sent it: zero cross-wiring. The switch underneath is measured separately by the [payment switch suite](payment_switch_conductor.md#non-functional-load-and-chaos) |
 | Per-destination circuit breaking on the operator call | Not built here. It is a policy in front of an HTTP call, which is where the rest of this scenario already lives. It is therefore configuration, rather than a new component |
 
 ## Related

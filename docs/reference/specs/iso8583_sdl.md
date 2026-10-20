@@ -447,11 +447,11 @@ Rack by hand:
 
 ```bash
 $ fluxrig spec import examples/specs/iso8583-v87-ascii.yaml
-Imported iso8583-v87-ascii:v2.2.0@256e09885b96 -> 256e09885b9681cfdb...
+Imported iso8583-v87-ascii:v3.0.0@0f4aa6aad084 -> 0f4aa6aad084db49fb9e....
 
 $ fluxrig spec list
 NAME               VERSION          IMPORTED              SIZE     HASH          TITLE
-iso8583-v87-ascii  v2.2.0 (latest)  2026-09-06 21:24 UTC  33.6 KB  256e09885b96  ISO 8583:1987 (ASCII)
+iso8583-v87-ascii  v3.0.0 (latest)  2026-10-20 14:58 UTC  32.4 KB  0f4aa6aad084  ISO 8583:1987 (ASCII)
 ```
 
 **3. Watch, before enforcing.** Name the spec in the codec and set `warn`:
@@ -462,7 +462,7 @@ gears:
     type: codec_iso8583
     deploy: edge
     config:
-      spec_path: "iso8583-v87-ascii:v2.2.0"
+      spec_path: "iso8583-v87-ascii:v3.0.0"
       direction: decode
       validation: warn
 ```
@@ -473,7 +473,7 @@ spec it judged it against:
 ```
 Message breaks a spec rule | flux.name=codec-in type=codec_iso8583 direction=decode
   mti=0200 severity=warn kind=usage rule="DE 2: is mandatory and is not present"
-  spec_id=iso8583-v87-ascii spec_version=2.2.0
+  spec_id=iso8583-v87-ascii spec_version=3.0.0
 ```
 
 Each is also counted on `flux.iso8583.violations`, labelled by severity, kind and

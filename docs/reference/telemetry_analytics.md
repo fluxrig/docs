@@ -66,6 +66,11 @@ GET /metrics
 * `flux.nats.publish_latency_ms`: Message bus propagation health.
 * `flux.bus.publish_errors`: System-level emission failures.
 
+Bus counters, by subject:
+
+* `flux.nats.messages_published`, `flux.nats.bytes_published`: what the Rack or Mixer put on the bus. The byte counter covers the raw publish path (where the size is in hand); the message counter covers every publish.
+* `flux.nats.messages_received`, `flux.nats.bytes_received`: what a subscriber took off the bus, including raw subscriptions (the Coat Check daemon). The byte counter covers the raw path, where the payload carries its own length.
+
 ---
 
 ### Specialized logging: the TRACE level

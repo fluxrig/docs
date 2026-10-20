@@ -10,7 +10,7 @@ title: Security reference
 
 Technical specifications for the **fluxrig** security model, identity envelopes, and transport protocols.
 
-## Identity envelopes (`state.flux`)
+## Identity envelopes (`rack.flux`)
 
 The Rack uses a signed CBOR envelope (the "Passport") to maintain its identity across reboots and offline partitions.
 

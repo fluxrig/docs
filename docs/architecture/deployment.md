@@ -111,7 +111,7 @@ To ensure **Zero-Downtime** operations at the edge, institutional deployments us
 
 The Snake, the NATS server that carries messages between Racks, runs inside the Mixer.
 
-*   **Identity survives**: the signed Passport (`state.flux`) lets a Rack start and prove its identity without contacting the Mixer.
+*   **Identity survives**: the signed Passport (`rack.flux`) lets a Rack start and prove its identity without contacting the Mixer.
 *   **Scenario survives**: a Rack keeps a local copy of the last scenario it applied. It starts the copy on its own, without the Mixer, when none of its wires uses the bus. A scenario that uses the bus waits for the bus.
 *   **Recovery is automatic**: a Rack that loses the Mixer reconnects by itself. A Rack that started without the Mixer probes the bus. It joins the Mixer when the bus answers, without stopping the gears it runs.
 *   **Flows inside one Rack keep running**: a wire between two gears of the same Rack goes through the Rack memory (the hot lane). It needs no Mixer.

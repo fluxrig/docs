@@ -33,6 +33,20 @@ make regression # System E2E check
 
 ---
 
+## Before you open a pull request
+
+Every pull request must reference an issue. Open the issue first, and describe the problem or the change. For a large change, agree on the approach with a maintainer before you write code. Then create your branch from `dev`, open the pull request against `dev`, and put `Closes #<issue>` in its body.
+
+Community pull requests target `dev`, not `main`. Public `main` holds the release snapshots. Each release rebuilds it from the release tag, and the next snapshot replaces any change merged into `main`. The maintainers port each accepted change from `dev` into the next release.
+
+The maintainers close a pull request that has no linked issue, and ask for an issue first.
+
+The reason is simple. The issue holds the discussion and the decision. The pull request holds the code. A reviewer can then check the code against the agreed change, and the history keeps the reason next to the change.
+
+One issue, one change. Split unrelated work into separate issues and pull requests. If your change needs an enterprise gear (`sim_source`, `sim_responder`), say so on the issue first. Those gears live in a separate repository, and a pull request here must not depend on them.
+
+---
+
 ## The developer journey
 Navigating an orchestration platform requires a clear roadmap. We maintain an institutional four-stage process from induction to production.
 
@@ -96,7 +110,7 @@ principle rather than a list, so that it stays legible as the product grows.
 
 *   **Foundation (Apache 2.0)**: It includes the core engine (`fluxrig`, `Rack`, `Mixer`) and every Gear that the project published in the [open repository](https://github.com/jaab-tech/fluxrig). The commitment is directional: **what the project published under Apache 2.0 stays under Apache 2.0**, in that version and in the ones that follow. The project never withdraws, relicenses, or moves anything already open behind a paywall later.
 *   **Commercial**: Capability beyond that set. It includes:
-    - Operational surfaces such as a visual console, role-based access control and audit logging.
+    - Operational surfaces such as a visual console, role-based access control and an audit console over the log and registry data (the log persistence itself is in the open engine; the surface over it is here).
     - Long-term analytics.
     - Development and certification tooling.
     - Specialised or licensed protocol dialects.
