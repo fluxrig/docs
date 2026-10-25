@@ -252,6 +252,7 @@ Mixer REST API settings.
 | `port` | `int` | `8090` | **Server Port** for the HTTP/gRPC API listener. |
 | `read_header_timeout` | `string` | `"3s"` | Deadline for reading request headers, which bounds a slow-header client. |
 | `control_confirm_timeout` | `string` | `"2s"` | How long a simulator control command (`/api/v1/control/sim/{action}`) waits for a gear to acknowledge it before the request answers that nobody is listening. |
+| `approval_push_timeout` | `string` | `"10s"` | How long the push of the active scenario to a Rack that an operator approves may take. The push continues if the client that asked for the approval disconnects. |
 | `tls_cert_file` | `string` | `""` | Server certificate. The API serves HTTPS when this and `tls_key_file` are both set. |
 | `tls_key_file` | `string` | `""` | Server private key. |
 | `auth_token` | `string` | `""` | Bearer token required as `Authorization: Bearer <token>` on every route but `/api/v1/health`. The Mixer refuses to start with this unset unless `auth_disabled_dangerously` is set. |
@@ -291,6 +292,7 @@ Embedded NATS Server (JetStream) settings.
 | `dlq_enabled` | `bool` | `true` | Route a message no consumer could process to the dead letter stream instead of dropping it. Off keeps the old behavior: log and discard. |
 | `dlq_subject` | `string` | `"flux.dlq"` | Subject prefix the dead letter stream captures. A failed message is republished as `<prefix>.<origin-subject>`. |
 | `dlq_max_age` | `string` | `"720h"` | How long a dead letter is kept. Empty keeps the stream default (`24h`). |
+| `dlq_publish_timeout` | `string` | `"5s"` | How long one dead letter publish may wait for the server. The Rack reads the same key. A value that is not a duration stops the start. |
 
 > [!NOTE]
 > The Mixer starts this server itself on every boot. There is no setting that

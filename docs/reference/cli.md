@@ -207,6 +207,11 @@ fluxrig scenario run visa-cert:v2.1.0 --target https://my-rack:8583
 | `fluxrig configuration` | Show the runtime configuration for Mixers and Racks |
 | `fluxrig check` | Verify connectivity to the bus, the Mixer API and local storage |
 
+**Check flags**:
+
+- `-c`, `--config` - A Rack or Mixer configuration file. The check fails when neither loader accepts it. A misspelled key or a duration that does not parse is enough.
+- `--timeout` - How long each network check (the bus, the Mixer API) may take (default: `5s`). Each check makes one attempt.
+
 **Logs flags**:
 
 - `--api-url` - Mixer API URL (default: `http://localhost:8090`)

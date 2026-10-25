@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Status | Summary |
 | :--- | :--- | :--- | :--- |
+| [v0.13.1](#v0131) | 2026-10-25 | Delivered | Go 1.26.10 and x/net v0.60.0 close 23 reachable vulnerabilities, an approved Rack gets the active scenario, `fluxrig check` reports a bad configuration and answers in seconds, dead letter publishes and file wire sources are bounded, and a server reply carries the swapped TPDU |
 | [v0.13.0](#v0130) | 2026-10-20 | Delivered | ISO 20022 support: an ISO 8583 network bridges to the RTP rail, specs and lookup data upload to the Mixer, the registry lives on the bus, and a Rack parks messages while the bus is down |
 | [v0.12.0](#v0120) | 2026-09-28 | Delivered | The Mixer's API and a Rack's enrollment and heartbeat now require authentication, a Rack pins the Mixer's signing key, and guaranteed-lane messages ack only once handled |
 | [v0.11.0](#v0110) | 2026-09-24 | Delivered | The message store is encrypted at rest, wires choose a lane (hot or guaranteed), and the first licensed enterprise gears ship alongside the core release |
@@ -27,6 +28,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 | [v0.7.1](#v071) | 2026-08-10 | Delivered | ISO 8583 TLV length hardening |
 | [v0.7.0](#v070) | 2026-08-01 | Delivered | Payment switch: Conductor gear, gear manifests, ISO 8583 TLS |
 
+
+## [v0.13.1] - 2026-10-25 {#v0131}
+
+### Added
+
+- **`snake.dlq_publish_timeout`** (default `5s`, Rack and Mixer) bounds how
+  long one dead letter publish waits for the server. Before, it had only the
+  client's default.
+- **`fluxrig check --timeout`** (default `5s`) bounds each network check to
+  one attempt. A zero or negative value uses the default.
+- **`api.approval_push_timeout`** (default `10s`) bounds the push of the
+  active scenario to a Rack that an operator approves.
+
+### Fixed
+
+- **A Rack approved after an activation gets the active scenario.** A
+  pending Rack was not a target of the activation or of the push after its
+  enrollment, so after approval it ran no global gear until something else
+  pushed. Approval now pushes the active scenario to it once. The push does
+  not stop when the client that asked for the approval disconnects.
+- **`iso8583-tool -mode decode` keeps the declared width** of a fixed-length
+  field, as `codec_iso8583` does since v0.13.0. STAN `000001` printed as `1`.
+- **`fluxrig check -c` reports a configuration that does not load.** It
+  ignored the error, so a misspelled key or a bad duration passed the check
+  while the Rack or Mixer refused to start.
+- **`fluxrig check` answers in seconds when the bus is down.** It went
+  through the bus client's reconnect loop, about 50 seconds.
+- **A file `wire.source` cannot leave the spec's directory through a
+  symlink.** The read goes through `os.Root` on that directory.
+- **`io_iso8583` `tpdu_swap` now does what it documents.** With `tpdu_enabled`,
+  `preserve_headers` and a 5 byte TPDU, a server reply now carries the TPDU with
+  its destination and source addresses exchanged (`60 DDDD SSSS` becomes
+  `60 SSSS DDDD`). Before, the option was never read and the reply carried the
+  request's TPDU unchanged. Set `tpdu_swap: false` to keep the old behavior. Contributed by [Galih Lasahido](https://github.com/galihlasahido).
+- **`io_iso8583` client mode keeps a preserved binary header valid.** The header
+  is stored hex-encoded in `iso8583.raw_header`, as in server mode. A header with
+  bytes of 0x80 or above made the message fail validation. Contributed by [Galih Lasahido](https://github.com/galihlasahido).
+- **The `payment_switch_two_regions` example loads and declines correctly.**
+  The decline builders set `root.mti` and `root."39"`, which the encoder does
+  not read, so no valid response was produced. They now set the metadata key
+  `iso8583.mti` and the field `iso8583.field.39`. The `ports` declaration of the
+  builders moved under `config`, where the gear reads it. At gear level the
+  scenario failed to load. Contributed by [Galih Lasahido](https://github.com/galihlasahido).
+
+### Security
+
+- **Built with Go 1.26.10 and `golang.org/x/net` v0.60.0.** The build used Go
+  1.26.4 and `x/net` v0.59.0. `govulncheck` found 23 known vulnerabilities
+  that the code can reach: 18 in the Go standard library (`net/http`,
+  `html/template`, `crypto/tls`, `os` and others, fixed between Go 1.26.5 and
+  1.26.10) and 5 in `x/net`. It finds none now. A binary built from this
+  release is not affected. A binary built from an earlier release, or one you
+  build with an older Go, still is.
 
 ## [v0.13.0] - 2026-10-20 {#v0130}
 
@@ -313,7 +367,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   import now takes a cross-process lock on `index.lock`, re-reads the file,
   merges its entry into what is on disk, and replaces the file atomically, so a
   reader never sees a torn index either.
-
 ## [v0.12.0] - 2026-09-28 {#v0120}
 
 **Before upgrading.** Most of the changes below are self-resolving once
@@ -975,7 +1028,8 @@ The payment-switch release: the **Conductor** transaction switch, a manifest sys
 - **Snake Protocol**: Secure tunneling implementation for Rack-to-Mixer connectivity.
 - **FluxMsg**: Canonical JSON schema for inter-gear communication.
 
-[Unreleased]: https://github.com/jaab-tech/fluxrig/compare/v0.13.0...HEAD
+[Unreleased]: https://github.com/jaab-tech/fluxrig/compare/v0.13.1...HEAD
+[v0.13.1]: https://github.com/jaab-tech/fluxrig/releases/tag/v0.13.1
 [v0.13.0]: https://github.com/jaab-tech/fluxrig/releases/tag/v0.13.0
 [v0.12.0]: https://github.com/jaab-tech/fluxrig/releases/tag/v0.12.0
 [v0.7.0]: https://github.com/jaab-tech/fluxrig/releases/tag/v0.7.0
