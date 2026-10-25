@@ -213,6 +213,13 @@ definitions:
     type: object
   config.ApiConfig:
     properties:
+      approvalPushTimeout:
+        description: |-
+          ApprovalPushTimeout bounds the push of the active scenario to a Rack
+          that an operator approves. The push does not end when the request
+          does: a client that disconnects must not leave the Rack half served.
+        example: 10s
+        type: string
       authDisabledDangerously:
         description: |-
           AuthDisabledDangerously must be set explicitly to start the Mixer with
@@ -584,6 +591,13 @@ definitions:
           DLQMaxAge bounds how long a dead letter is kept. Empty keeps the
           stream default (24h).
         example: 720h
+        type: string
+      dlqpublishTimeout:
+        description: |-
+          DLQPublishTimeout bounds how long one dead letter publish waits for the
+          server. A dead letter that cannot be written in time is logged and the
+          consumer moves on, so a stalled server does not hold it.
+        example: 5s
         type: string
       dlqsubject:
         description: DLQSubject is the subject prefix the dead letter stream captures.
@@ -966,7 +980,7 @@ info:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
   title: fluxrig Mixer API
-  version: v0.13.0
+  version: v0.13.1
 paths:
   /config:
     get:
