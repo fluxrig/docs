@@ -57,16 +57,20 @@ ISO 8583 TCP I/O: framing, TPDU, native TLS/mTLS. Bridges one bidirectional sock
 | `connect` | string |  | - | client mode: upstream address to dial, host:port. |
 | `connect_timeout` | string |  | `5s` | client mode: max time for the TCP dial. |
 | `encoding` | enum: `ascii`, `ebcdic`, `bcd` |  | `ascii` | field encoding used for heuristic inspection: ascii, ebcdic or bcd. |
+| `event_queue_size` | integer |  | `1024` | connection events that wait for the publisher. A full queue drops the event with a Warn, and the connection goes on. |
 | `frame_includes_header` | boolean |  | `false` | whether the length prefix counts its own bytes. |
 | `frame_length_endian` | enum: `big`, `little` |  | `big` | byte order of the length prefix. |
 | `frame_length_size` | enum: `2`, `4` |  | `2` | bytes in the length prefix that frames each message (2 or 4). |
 | `heuristic_validation` | boolean |  | `true` | run lightweight MTI/bitmap sanity checks on each frame read. |
 | `idle_timeout` | string |  | `15s` | max time a connection may sit idle between frames before it is closed. |
 | `max_connections` | integer |  | `4096` | server mode: maximum concurrent connections (0 = unlimited). |
+| `on_missing_connection` | enum: `drop`, `same_remote_ip`, `same_listener` |  | `drop` | server mode: what to do with a reply whose connection no longer exists, for example after the peer reconnected. drop refuses it; same_remote_ip sends it on the newest connection from the remote IP of the request; same_listener sends it on the newest connection of this server. Applies while strict_connection_routing is true. |
 | `preserve_headers` | boolean |  | - | carry the raw protocol header through so the reply can mirror it. |
 | `protocol_header_size` | integer |  | - | fixed protocol-header length (bytes) carried before the ISO message; 0 = none. |
+| `publish_events` | boolean |  | `true` | publish a durable event when a connection opens and when it closes. With clients that connect for each transaction, this is two writes to disk per connection. |
 | `read_timeout` | string |  | `5s` | max time to read the body of a frame already in progress, e.g. '5s'. |
 | `reconnect_wait` | string |  | `5s` | client mode: delay before redialing a dropped connection, e.g. '5s'. |
+| `stop_timeout` | string |  | `5s` | max time to wait, when the gear stops, for the connection handlers to finish and for their closed events to leave. 0s does not wait. |
 | `strict_connection_routing` | boolean |  | `true` | return each reply on the exact connection (conn.id) its request arrived on. |
 | `tls` | object |  | - | native TLS/mTLS for this socket. |
 | `tpdu_enabled` | boolean |  | `false` | whether a 5-byte TPDU precedes the message. |
@@ -120,6 +124,53 @@ What flows through each port depends on the gear's **mode**, because the mode de
 | `client` (gear dials upstream) | Responses from the upstream host | Requests going to the upstream host |
 
 A request/response round trip therefore always uses **both** wires of the gear. One message leaves through `out`. After processing elsewhere in the scenario, one message enters through `in`. The `conn.id` metadata pins the response to the same socket the request arrived on.
+
+
+### A reply for a connection that is gone
+
+In server mode, a reply goes back on the connection that its request arrived on (the `conn.id` metadata). A peer can drop that connection and reconnect before the reply is ready. The field `on_missing_connection` sets what the gear does then.
+
+| Value | What the gear does with the reply |
+| :--- | :--- |
+| `drop` (default) | Refuses the reply and logs an error. |
+| `same_remote_ip` | Sends it on the newest active connection from the remote IP of the request (`peer.ip`). The gear does not compare the remote port, because the port changes when a peer reconnects. |
+| `same_listener` | Sends it on the newest active connection of this server. |
+
+A reply for a connection that is still open always goes on that connection. If the value finds no connection, the gear refuses the reply, as `drop` does. When the gear moves a reply to another connection, it writes a warning with both connection ids.
+
+Choose the value from the way your peers connect:
+
+*   Each terminal has its own IP address: use `same_remote_ip`.
+*   A NAT or a concentrator shares one IP address between several terminals: `same_remote_ip` can send a reply to another terminal of that address. Keep `drop`.
+*   The listener has one peer only, for example a link to a host: use `same_listener`.
+
+With `strict_connection_routing: false`, the gear sends the reply on any active connection, and `on_missing_connection` does not apply. Use that setting only to test a loopback.
+
+A client has one connection, the one it dialed, and it writes every message on the current one. The field does not apply to client mode, and the configuration refuses a value other than `drop` there.
+
+### Connection events
+
+The gear publishes a durable event when a connection opens and when it closes, in server mode and in client mode. A scenario uses the event to act on a connection that has sent nothing yet, for example to send a logon. The [Bento gear](bento.md#events-logon-on-connect) reads these events.
+
+| Event | When |
+| :--- | :--- |
+| `opened` | Server: when the connection is ready, before its first frame is read, so a reply to its `conn_id` works at once. Client: when the dial succeeds. |
+| `closed` | Once, after the connection has left the gear. It has a `reason`. |
+
+| `reason` | Why the connection closed |
+| :--- | :--- |
+| `peer_closed` | The peer closed the socket. |
+| `idle_timeout` | The read of the next frame timed out. |
+| `read_error` | Any other read error. |
+| `invalid_frame` | The heuristic validation failed, and the gear disconnected. Server mode only. |
+| `closed_by_command` | A `conn.close` command closed it. |
+| `stopped` | The gear stopped. |
+
+The subject is `flux.evt.conn.<rack>.<gear>`, in the stream `flux-events` of the Mixer. The body is JSON with `event`, `conn_id`, `gear`, `rack`, `peer_ip`, `peer_port`, `ts` and, for `closed`, `reason`. New fields can appear in a later release. Existing fields do not change.
+
+A socket never waits for the bus. The events of a gear go through a queue of `event_queue_size` entries, and a full queue drops the event with a warning. When the bus does not answer, the event waits in the outbox of the Rack and leaves when the bus returns. A full outbox drops the event with a warning, and an event never takes the place of a message.
+
+Each connection adds two events to the stream of the Mixer. Set `publish_events: false` to turn them off. Client mode keeps its `conn.up` and `conn.down` commands, which the conductor reads.
 
 ---
 

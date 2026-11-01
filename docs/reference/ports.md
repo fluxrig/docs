@@ -40,7 +40,7 @@ By default, fluxrig components communicate using the following standard ports:
 ### Technical identifiers
 We use the abbreviated `flux.` prefix for internal system primitives to keep names brief in high-volume streams:
 
-*   **NATS Subjects**: `flux.msg.>`, `flux.telemetry.>`, `flux.ctrl.>`
+*   **NATS Subjects**: `flux.msg.>`, `flux.telemetry.>`, `flux.ctrl.>`, `flux.evt.>`
 *   **Log Attributes**: `flux.type`, `flux.name`, `flux.id`
 *   **File Extensions**: `.flux` (e.g., `rack.flux` for Rack Passports)
 *   **Data Structures**: `fluxMsg`, `FluxID` (PascalCase in Go code, camelCase in serialized JSON/CBOR).

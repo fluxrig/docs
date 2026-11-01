@@ -12,6 +12,39 @@ This page lists what you do to move a running fleet from one release to the next
 
 The page starts at v0.13. For an upgrade from an earlier release, read the BREAKING entries of each release you cross in the changelog.
 
+## From v0.13 to v0.14 {#v013-to-v014}
+
+Do these steps in the order of this section. The Mixer goes first: it creates the stream of durable events, and it checks your scenarios before any Rack refuses one.
+
+### Check the stream subjects
+
+The Mixer creates a stream that captures `flux.evt.>`. If `snake.stream_subjects` includes those subjects, the two streams overlap, and the Mixer starts without the new one. Remove them from the list. The default list does not include them.
+
+### Upgrade the Mixer
+
+The Mixer provisions `flux-events` at startup, with `snake.events_max_age` and `snake.events_max_bytes`. A Rack on v0.13 works under a v0.14 Mixer.
+
+### Check each scenario
+
+A gear option that the schema of the gear does not declare is now refused, at the top level and in each object that the schema describes. Before, the option was ignored. A Rack applies the same check, so a scenario that is active today can fail on a Rack after the upgrade. Check each scenario on the upgraded Mixer before you upgrade a Rack:
+
+```bash
+fluxrig scenario import --api --dry-run ./scenario.yaml
+```
+
+`--api` sends the file to the Mixer at `FLUXRIG_API_URL` (default `http://localhost:8090`), with the token in `FLUXRIG_API_TOKEN`. The answer names the gear and the key. Remove the key, or correct its spelling. One known case is `name` in the configuration of `codec_iso8583`, which nothing reads.
+
+### Check your Wasm modules
+
+Do this if you run the `wasm` gear.
+
+- The gear now applies `memory_limit_pages`, and its default is 256 pages (16 MiB). A module that declares more memory than the limit does not load, and a `memory.grow` over the limit fails. A scenario that sets `memory_limit_pages: 16` fails with a module that has a 1 MiB stack, as the Zig tutorial module has. Raise the value, or remove the key.
+- A module from `snake://` must have a valid cluster signature. Before, a module with none ran with a warning. Import each module with `fluxrig wasm import`, and do not write to the catalog by hand. A module from `file://` can still run unsigned, for development.
+
+### Upgrade every Rack
+
+Each Rack now publishes an event when a connection of `io_iso8583` opens and when it closes. That is two writes to the Mixer's disk for each connection. If your clients connect for each transaction and no gear reads the events, you can set `publish_events: false` on the gear.
+
 ## From v0.12 to v0.13 {#v012-to-v013}
 
 Do these steps in the order of this section. Later steps need the earlier ones: the scenarios, for example, are imported only after the Mixer runs and the spec is uploaded.

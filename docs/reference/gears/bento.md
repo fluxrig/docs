@@ -122,6 +122,54 @@ Input from `fluxrig` `in` -> Egress to local storage.
           path: "/data/archive/${! meta(\"trace_id\") }.json"
 ```
 
+### Events (logon on connect)
+
+`ports.events` makes the gear read durable events. Each entry adds an input, so the gear needs no wire in front of it. This gear sends a logon as soon as a client connects to `server_io`:
+
+```yaml
+- name: "on_connect"
+  type: "bento"
+  config:
+    ports:
+      outputs: ["out"]
+      events:
+        - gear: "server_io"          # the gear whose events to read
+          on: ["opened"]             # opened, closed, or both. Default: both
+          max_event_age: "30s"
+    bento:
+      pipeline:
+        processors:
+          - mapping: |
+              meta "iso8583.mti" = "0800"
+              root = {"iso8583": {"field": {
+                "7": now().ts_format("0102150405", "UTC"),
+                "11": "%06d".format(counter(min: 1, max: 999999)),
+                "70": "001"
+              }}}
+```
+
+DE 7 is the transmission date and time in UTC. `counter()` gives the STAN in DE 11. It counts from 1 to 999999 and wraps, and it lives in memory, so it starts at 1 again when the Rack restarts.
+
+Each event gives one message. The body is the JSON of the event, and the metadata has `conn.id`, `conn.event`, `conn.gear`, `conn.rack`, `peer.ip`, `peer.port` and, for `closed`, `conn.reason`. The metadata stays on the message, so a message that you wire to the `in` port of `io_iso8583` reaches the connection. The full scenario is `examples/scenarios/iso8583_server_logon.yaml`.
+
+| Field | Default | Description |
+| :--- | :--- | :--- |
+| `gear` | required | The gear to read, as `gear` or `rack.gear`. |
+| `on` | both | The events to read. |
+| `max_event_age` | `30s` | Drop an event older than this. |
+| `max_deliver` | `5` | Deliveries of an event whose pipeline fails. |
+| `consumer_inactive_after` | `1h` | Delete the consumer of a reader that stayed away this long. |
+
+**Which Rack.** `gear` resolves as the source of a wire does. A gear with a `deploy` target is read from that Rack. A gear with no target runs on every Rack, and each reader reads the gear on its own Rack, so a reader sees only connections that its Rack holds. `rack.gear` names the Rack.
+
+**Delivery.** Each reader has a durable consumer of its own, named `<rack>_<reader>_<source>`, so several gears can read the same events and they do not compete. A reader that was down gets what it missed. The gear acknowledges an event when the pipeline ends, and a failure delivers the event again, up to `max_deliver`.
+
+**Age.** A late logon is not harmless: the connection may be gone, or the reply may reach a newer connection of that peer. So a reader drops an event older than `max_event_age`, by the time the Rack published it, and logs it. After an outage longer than that, a client that connected in the meantime gets no logon. On more than one Rack the clocks must agree (NTP).
+
+**The Mixer.** The events go through the Mixer, also between two gears of one Rack. Without the Mixer the Rack keeps its traffic, and its events wait in the outbox.
+
+A gear with `ports.events` cannot also have its own `input` block. It can have `ports.inputs`. A name in `gear` that the scenario does not have fails the import.
+
 ### Processor (logic)
 Transformation. `fluxrig` `in` -> Logic -> `fluxrig` `out`.
 

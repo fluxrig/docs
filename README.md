@@ -23,9 +23,12 @@ The pages are Markdown with front matter, built into the site with
 
 ## Reporting a problem
 
-Open an [issue](https://github.com/fluxrig/docs/issues) naming the page. For
-fluxrig itself, see
-[Governance & contributing](https://fluxrig.org/docs/development/contributing).
+Issues are off in this repository. Open an
+[issue in fluxrig](https://github.com/jaab-tech/fluxrig/issues) and name the
+page. To propose a change, send a pull request here that references that issue.
+A maintainer reviews it and applies it to the source of the site. The rules are
+in [CONTRIBUTING](https://github.com/jaab-tech/fluxrig/blob/dev/CONTRIBUTING.md#documentation)
+and in [Governance & contributing](https://fluxrig.org/docs/development/contributing).
 
 ---
 

@@ -35,6 +35,30 @@ A **Scenario** is a declarative YAML file. It defines the operational topology f
 
 If you import a broken scenario with invalid wires or missing specs, the Mixer performs **pre-flight validation**. It rejects the transition. The cluster thus remains on the last known good state.
 
+### What the Mixer checks in a gear configuration
+
+The Mixer checks the `config` of every gear when it imports a scenario. A dry run (`dry_run=true` on `POST /scenario/import`) makes the same check and stores nothing. The Rack checks again when it applies the scenario. The reference is the schema of the gear. The **Manifest reference** table on the page of each gear lists its keys, their types and their allowed values.
+
+The check refuses three things:
+
+*   A value of the wrong type, or outside the allowed values.
+*   A required key that is missing.
+*   **A key that the gear does not declare.** This applies at the top level of `config`. It also applies in each nested object that the gear page lists with its own keys. The check never ignores a misspelt option.
+
+The answer to the import is HTTP 400. It names the gear and the key:
+
+```text
+Import failed: invalid gear config: gear "server_io": gear "io_iso8583": invalid config: (root): Additional property stric_connection_routing is not allowed
+```
+
+Three things are exceptions:
+
+*   The key `labels` is always allowed at the top level of `config`.
+*   An object that the gear page shows with no keys of its own accepts any keys. The `bento` section of a `bento` gear is one.
+*   A gear with a free-form configuration says so in its schema.
+
+The check does not find a value that has the right type and is wrong for the gear. A path to a spec file that does not exist is one example. The Rack finds these errors when it applies the scenario.
+
 ## Startup resolution
 
 When the Mixer starts, it resolves the `startup_scenario` reference with three strategies:
