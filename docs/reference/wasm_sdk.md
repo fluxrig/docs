@@ -53,7 +53,9 @@ The main execution entrypoint. The host calls it when a new message arrives at t
   - **High 32 bits**: It gives the return pointer to the modified CBOR payload.
   - **Low 32 bits**: It gives the return length of the modified payload.
 
-If you wish to drop a message, return `0`. 
+If you wish to drop a message, return `0`. The host then frees the input block.
+
+The host limits the memory of the module to `memory_limit_pages`. A module that declares more memory than that limit does not load. A `memory.grow` over the limit fails.
 
 ## Host imports (capabilities)
 
@@ -95,4 +97,6 @@ Your module must:
 4. **Host calls `process(ptr, len)`**.
 5. **Guest processes** the message, allocates new memory for the result, writes the new CBOR, and returns the packed `u64`.
 6. **Host reads** the new CBOR from the returned pointer.
-7. **Host calls `free`** on both the original input pointer and the new output pointer to prevent memory leaks.
+7. **Host calls `free`** on the original input pointer and on the new output pointer to prevent memory leaks. If `process` returns the input pointer, the host frees that block once.
+
+If `alloc` returns `0`, the host treats it as an error and does not call `process`.

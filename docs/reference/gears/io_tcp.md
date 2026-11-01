@@ -70,6 +70,7 @@ Generic TCP I/O with delimiter/length framing. Bridges one bidirectional socket 
 | `max_connections` | integer |  | `4096` | server mode: maximum concurrent connections (0 = unlimited). |
 | `read_responses` | boolean |  | `true` | client mode: whether to read responses from the server. Set to false for one-way send (e.g. to an echo server that doesn't send proper ISO8583 responses). |
 | `reconnect_wait` | string |  | `5s` | client mode: delay before redialing a dropped connection, e.g. '1s'. |
+| `tags` | object |  | - | free labels for the operator, for example role: ingress. The gear does not read them. |
 <!-- AUTOGEN:manifest:io_tcp END -->
 
 ## Architecture
@@ -100,14 +101,19 @@ The full field list, with types and defaults, is in the **Manifest reference** t
 
 ## Framing strategies
 
-Currently, `io_tcp` supports **Delimiter-based framing**.
+The `framing` field selects how `io_tcp` cuts the byte stream into messages and how it frames a message that it sends.
 
 | Strategy | Config Key | Description |
 | :--- | :--- | :--- |
-| **Delimiter** | `delimiter` | Reads until specific byte (e.g. `\n`, `0x03`). **Warning**: Does not support escaping. If the payload canonically contains the delimiter, framing will break. Use fixed-length framing for binary protocols. |
-| **ScanLines** | (Default) | If `delimiter` is empty, breaks on `\n` (Buffer default). |
+| **Delimiter** | `framing: delimiter` (default), `delimiter` | Reads until a delimiter (for example `\n` or `0x03`). If `delimiter` is empty, it breaks on `\n`. **Warning**: It does not support escaping. If the payload contains the delimiter, framing breaks. Use a length prefix for binary protocols. |
+| **2-byte length prefix** | `framing: length_prefix2` | Each message is a 2-byte big-endian length, then the payload. The largest payload is 65535 bytes. |
+| **4-byte length prefix** | `framing: length_prefix4` | Each message is a 4-byte big-endian length, then the payload. |
 
-> **Note**: A future release will add fixed-length framing (e.g. 2-byte BE).
+With a length prefix, the gear removes the prefix from a message that it receives, and adds it to a message that it sends. A length above 1 MiB is an error. The `delimiter` fields apply only to the delimiter strategy.
+
+`io_tcp` frames messages for protocols in general. For ISO 8583 traffic, use [`io_iso8583`](io_iso8583.md), which also handles the length prefix, headers and connection state.
+
+The example below uses the delimiter strategy. For a length prefix, set `framing: "length_prefix2"` or `framing: "length_prefix4"` and remove the `delimiter` fields.
 
 ```yaml
 

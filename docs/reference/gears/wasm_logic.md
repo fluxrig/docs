@@ -38,9 +38,9 @@ Runs a sandboxed WebAssembly module (wazero) as a polyglot message transform.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `source` | string | yes | - | Path or URN of the .wasm module (e.g. file://... or a CAS urn). |
+| `source` | string | yes | - | Location of the .wasm module: file://&lt;path&gt;, or snake://&lt;bucket&gt;/&lt;key&gt; for the catalog. |
 | `entrypoint` | string |  | - | Exported function to call per message. |
-| `memory_limit_pages` | integer |  | - | Wasm linear-memory cap in 64KiB pages. |
+| `memory_limit_pages` | integer |  | `256` | Wasm linear-memory cap in 64KiB pages. A module that needs more does not load. |
 <!-- AUTOGEN:manifest:wasm END -->
 
 ## Why Wasm?
@@ -122,10 +122,10 @@ gears:
   - name: "my-wasm-gear"
     type: "wasm"
     config:
-      # Source can be a local file or pulled from the NATS Catalog via URN
-      source: "urn:wasm:fraud-scorer:v2.1"
+      # Source can be a local file (file://) or a module of the catalog (snake://)
+      source: "snake://wasm_catalog/<hash>.wasm"
       entrypoint: "process"
-      memory_limit_pages: 16
+      memory_limit_pages: 256
 
 # Note: Because the Wasm gear is currently a pure Filter gear, its ports are implicit.
 # Any message routed to `my-wasm-gear.in` will trigger `process()`, and the returned

@@ -37,13 +37,23 @@ make regression # System E2E check
 
 Every pull request must reference an issue. Open the issue first, and describe the problem or the change. For a large change, agree on the approach with a maintainer before you write code. Then create your branch from `dev`, open the pull request against `dev`, and put `Closes #<issue>` in its body.
 
-Community pull requests target `dev`, not `main`. Public `main` holds the release snapshots. Each release rebuilds it from the release tag, and the next snapshot replaces any change merged into `main`. The maintainers port each accepted change from `dev` into the next release.
+Community pull requests target `dev`, not `main`. A maintainer reviews your pull request and squash-merges it on `dev`. The next release then adds your commit, with your name, to the history of `main`. Public `main` is the release line, and only a release changes it.
+
+Do not edit `CHANGELOG.md`. The maintainers write the entry when they prepare the release that carries your change, and they credit you in it. You see your entry when the maintainers publish that release.
+
+Do not name another company's commercial product in source comments, help text, schema descriptions, file names or test names. Describe the format instead, for example "zero-padded ASCII decimal digits, e.g. `0123`". The products that the project uses, such as NATS and DuckDB, are fine. A protocol, standard or scheme name is fine when the code handles it, such as ISO 8583 or `variant: "visa"`. A product name in the code compares or implies a relationship that nobody can check. It stays in the history after the pull request merges.
+
+You do not need to write the documentation for a code change. Describe what a user sees in the body of your pull request. List new or changed configuration keys with their defaults, flags, and any change in behaviour. The maintainers write the pages and publish them with the release that carries your change.
+
+To change a page yourself, open an issue in the [fluxrig repository](https://github.com/jaab-tech/fluxrig/issues) and name the page. Issues are off in the documentation repository. Then send a pull request to [fluxrig/docs](https://github.com/fluxrig/docs) that references the issue (`Closes jaab-tech/fluxrig#<number>`). A maintainer does not merge it there, because each release replaces the content of that repository. The maintainer checks your change, applies it to the source of the site, and closes your pull request with a note that names the release. The changelog credits you by name.
 
 The maintainers close a pull request that has no linked issue, and ask for an issue first.
 
 The reason is simple. The issue holds the discussion and the decision. The pull request holds the code. A reviewer can then check the code against the agreed change, and the history keeps the reason next to the change.
 
 One issue, one change. Split unrelated work into separate issues and pull requests. If your change needs an enterprise gear (`sim_source`, `sim_responder`), say so on the issue first. Those gears live in a separate repository, and a pull request here must not depend on them.
+
+The command-line tool `iso8583-tool` is a wire-level instrument for the project's own test suites. It takes fixes, and options for the wire formats that the gears support, such as a length-prefix style. It does not gain new modes or behaviour, such as a responder. Build those as a scenario. If a scenario cannot express what you need, open an issue and describe it.
 
 ---
 

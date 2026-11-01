@@ -121,7 +121,7 @@ gears:
       # Use the hash returned by the import command
       source: "snake://wasm_catalog/<hash>.wasm"
       entrypoint: "process"
-      memory_limit_pages: 16 # Sandbox limited to 1MB
+      memory_limit_pages: 256 # Sandbox limited to 16 MiB
 ```
 
 Upload the scenario using the fluxrig CLI:

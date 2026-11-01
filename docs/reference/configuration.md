@@ -292,6 +292,8 @@ Embedded NATS Server (JetStream) settings.
 | `dlq_enabled` | `bool` | `true` | Route a message no consumer could process to the dead letter stream instead of dropping it. Off keeps the old behavior: log and discard. |
 | `dlq_subject` | `string` | `"flux.dlq"` | Subject prefix the dead letter stream captures. A failed message is republished as `<prefix>.<origin-subject>`. |
 | `dlq_max_age` | `string` | `"720h"` | How long a dead letter is kept. Empty keeps the stream default (`24h`). |
+| `events_max_age` | `string` | `"1h"` | Mixer only. How long the `flux-events` stream keeps a durable event. A reader that was down longer has lost what it missed. |
+| `events_max_bytes` | `int` | `268435456` | Mixer only. Largest size of the `flux-events` stream, in bytes. An event takes about 390 bytes, and a connection makes two events. |
 | `dlq_publish_timeout` | `string` | `"5s"` | How long one dead letter publish may wait for the server. The Rack reads the same key. A value that is not a duration stops the start. |
 
 > [!NOTE]
@@ -327,6 +329,14 @@ subscriber), fix the cause, and republish the original bytes to
 The dead letter stream's subject must not fall under the message stream's
 subjects (`flux.msg.>`, `flux.agent.>`, `flux.rack.>`, `flux.ctrl.>`), or
 the stream cannot be created. The default `flux.dlq` does not overlap.
+
+### Durable events
+
+The Mixer provisions a `flux-events` stream that captures `flux.evt.>`, for the
+[connection events](gears/io_iso8583.md#connection-events) of `io_iso8583`. A
+`stream_subjects` value that includes `flux.evt.>` overlaps it, and the Mixer
+logs a warning and starts without the stream. Each Rack then keeps its events in
+its outbox.
 
 #### Example (Mixer)
 
