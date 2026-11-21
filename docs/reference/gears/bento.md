@@ -156,7 +156,7 @@ Each event gives one message. The body is the JSON of the event, and the metadat
 | :--- | :--- | :--- |
 | `gear` | required | The gear to read, as `gear` or `rack.gear`. |
 | `on` | both | The events to read. |
-| `max_event_age` | `30s` | Drop an event older than this. |
+| `max_event_age` | `30s` | Drop an event older than this. Must be longer than `snake.ack_wait` of the Rack (`10s` by default), or the gear does not start. |
 | `max_deliver` | `5` | Deliveries of an event whose pipeline fails. |
 | `consumer_inactive_after` | `1h` | Delete the consumer of a reader that stayed away this long. |
 
@@ -165,6 +165,8 @@ Each event gives one message. The body is the JSON of the event, and the metadat
 **Delivery.** Each reader has a durable consumer of its own, named `<rack>_<reader>_<source>`, so several gears can read the same events and they do not compete. A reader that was down gets what it missed. The gear acknowledges an event when the pipeline ends, and a failure delivers the event again, up to `max_deliver`.
 
 **Age.** A late logon is not harmless: the connection may be gone, or the reply may reach a newer connection of that peer. So a reader drops an event older than `max_event_age`, by the time the Rack published it, and logs it. After an outage longer than that, a client that connected in the meantime gets no logon. On more than one Rack the clocks must agree (NTP).
+
+An event that the consumer sent through a NATS server that stopped comes again after `snake.ack_wait`. It is then still younger than `max_event_age`, so the logon is late, not lost.
 
 **The Mixer.** The events go through the Mixer, also between two gears of one Rack. Without the Mixer the Rack keeps its traffic, and its events wait in the outbox.
 

@@ -36,7 +36,7 @@ fluxrig applies these same uncompromising requirements to mission-critical busin
 | **Rack** | A distributed edge node that executes logic. | An **Equipment Rack** housing specialized signal processors. |
 | **Gear** | A modular logic unit (protocol codec, adapter, or transformation). | A **Signal Processor**, pedal, or outboard effect unit. |
 | **Wire** | A persistent, ordered data path (NATS JetStream). | A **Signal Path** or high-quality patch cable. |
-| **Snake** | A secure, multiplexed mTLS tunnel for control signals. | A **Multi-core Snake** cable used for long-distance routing. |
+| **Snake** | A multiplexed connection, over TLS, for control signals. | A **Multi-core Snake** cable used for long-distance routing. |
 | **fluxMsg** | The standardized data envelope (Deterministic CBOR). | A **Normalized Signal** calibrated for downstream processing. |
 
 ## The "studio" in practice

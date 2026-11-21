@@ -74,6 +74,7 @@ To prevent malicious payloads from executing at the edge, `fluxrig` enforces a s
 > **Current Topology Role**: The Wasm gear currently runs strictly as a **Filter** gear (1-to-1 or 1-to-0). It receives exactly one input message, processes it synchronously, and returns exactly one output message (or drops it).
 
 Because of this strict filter pattern, the Wasm gear uses **implicit ports**. You do not need to define a `ports` block in its configuration.
+
 - **Input (`.in`)**: The router automatically routes incoming messages to the gear's `.in` port, which triggers the Wasm `process()` function.
 - **Output (`.out`)**: The result returned by `process()` is automatically emitted on the `.out` port.
 

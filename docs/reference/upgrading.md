@@ -12,6 +12,33 @@ This page lists what you do to move a running fleet from one release to the next
 
 The page starts at v0.13. For an upgrade from an earlier release, read the BREAKING entries of each release you cross in the changelog.
 
+## From v0.14 to v0.15 {#v014-to-v015}
+
+Upgrade the Mixer and every Rack in the same maintenance window. The Mixer sends a Rack its status, its commands and its passport on `flux.agent.notify.<rack>.<machine-id>`. A Rack of v0.14 listens on a different subject, so a Rack and a Mixer of different versions do not receive these messages from each other. The gears of a Rack continue to run during the window.
+
+### Check the trusted Wasm keys
+
+Do this if you run the `wasm` gear with signed modules.
+
+- The name of each key file in `wasm.trusted_keys_dir`, without `.pub`, is the vendor name. It must have 1 to 64 letters, digits, `-` and `_`. The Mixer ignores a file with a different name, and writes a warning. A module signed with that key is then refused at import. Rename the files before the upgrade.
+- The trusted keys are on the bus after the upgrade. At startup a Mixer adds each key of `wasm.trusted_keys_dir` that the bus does not have. To stop the trust in a vendor, use `fluxrig wasm keys revoke <vendor>`. When you delete the key file, the vendor stays trusted.
+
+### Check the operation timeout
+
+`snake.ack_wait` (default `"10s"`) must be longer than `snake.operation_timeout`. The Mixer and the Rack do not start otherwise. If you set `snake.operation_timeout` to `"10s"` or more, set `snake.ack_wait` to a longer value.
+
+### Upgrade the Mixer, then every Rack
+
+1. Upgrade the Mixer.
+2. Upgrade every Rack.
+3. `fluxrig admin racks list` shows every Rack as `active` and `online`.
+
+### Move to several Mixers
+
+This step is optional. The external mode runs several Mixers on a NATS cluster that you operate. See [High availability](high_availability.md).
+
+A Mixer in the external mode does not copy what the NATS server inside it holds. The registry, the scenarios and the Wasm catalog start empty on the external NATS. Only the specs of each Mixer go to the shared spec store, one time. Record your Racks and your scenarios before the move, as for the [upgrade to v0.13](#v012-to-v013). This release has no tested procedure to move a running fleet from the embedded mode to the external mode.
+
 ## From v0.13 to v0.14 {#v013-to-v014}
 
 Do these steps in the order of this section. The Mixer goes first: it creates the stream of durable events, and it checks your scenarios before any Rack refuses one.

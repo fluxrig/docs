@@ -27,7 +27,7 @@ The platform follows a modular architectural model. It strictly separates centra
 | **Rack** | Distributed Node | A decentralized execution node running the processing logic (Gears) defined in a Scenario. |
 | **Gear** | Logic Unit | A modular unit of processing logic (Native/Wasm) responsible for specific tasks. |
 | **Wire** | Signal Path | A deterministic, unidirectional persistent queue (NATS JetStream) connecting gears. |
-| **Snake** | Secure Tunnel | The persistent, outbound-only **mTLS** connection between a Rack and the Mixer. |
+| **Snake** | Bus connection | The persistent, outbound-only connection between a Rack and the Mixer, over TLS when the Mixer has a certificate. |
 | **Scenario**| Topology Config | Declarative YAML defining the execution topology and signal routes. |
 | **Spec** | Schema | Defines the structure of external payloads natively via **SDL**. |
 | **Registry** | Identity Ledger | The centralized source of truth for node identity, security secrets, and telemetry indexing. |
@@ -134,4 +134,4 @@ Unlike monolithic gateways, **fluxrig** operates across an **Orchestration Spect
 ---
 
 ## Security & data sovereignty
-For detail on the **Snake Protocol (mTLS)** and **Air-Gapped Operation**, please refer to the dedicated **[Security Architecture](security.md)** and **[Data Architecture](data.md)** documents.
+For detail on the **Snake Protocol** and **Air-Gapped Operation**, please refer to the dedicated **[Security Architecture](security.md)** and **[Data Architecture](data.md)** documents.

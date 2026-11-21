@@ -10,7 +10,7 @@ title: Industrial use cases
 By composing specialized **Gears**, industrial engineers can transform what the shop floor already publishes into semantic, cloud-ready events without modifying mission-critical control hardware. Reading PLC registers directly needs the Modbus and RS-485 gears, which are on the roadmap. Today a Rack sits behind whatever already speaks TCP or HTTP.
 
 ## The Unified Namespace (UNS) strategy
-**fluxrig** is a native implementation of the **Unified Namespace** architectural pattern. The platform uses the **Mixer** as the central source of truth for the entity registry and the secure mTLS transport. This enables a single, contextualized hierarchy for all industrial data. This bridges the gap between the shop floor (OT) and the boardroom (IT).
+**fluxrig** is a native implementation of the **Unified Namespace** architectural pattern. The platform uses the **Mixer** as the central source of truth for the entity registry and the transport. This enables a single, contextualized hierarchy for all industrial data. This bridges the gap between the shop floor (OT) and the boardroom (IT).
 
 > [!TIP]
 > This strategy is central to modern **Industrial DataOps**. For more context on the terminology and industry alignment, see the **[Foundation Components](../overview/foundation.md)** guide.
@@ -49,7 +49,7 @@ In this pattern, **fluxrig** acts as an inline gateway. It polls OT data and app
 
 ## Sovereign security: inbound zero
 
-Industrial environments require absolute isolation. **fluxrig** enforces a strict **Inbound Zero** policy via secure mTLS tunnels:
+Industrial environments require absolute isolation. **fluxrig** enforces a strict **Inbound Zero** policy through outbound connections:
 
 *   **Outbound initiation**: The localized Rack initiates the connection to the Central Mixer. The firewall opens no inbound ports.
 *   **Surface attack elimination**: By maintaining a closed-firewall profile, the factory floor remains invisible to public internet scanning and lateral movement attacks.

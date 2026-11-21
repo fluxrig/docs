@@ -67,7 +67,7 @@ flowchart LR
             Studio["Control Center <br/><i>(Planned)</i>"]
         end
     end
-    Rack_A == "Secure Tunnel (mTLS)" ==> Mixer
+    Rack_A == "Snake (TLS)" ==> Mixer
     CLI --> Mixer
     Studio --> Mixer
     Mixer --> Warehouse
@@ -81,7 +81,7 @@ flowchart LR
 | **Rack** | Distributed edge node executing local logic. | Equipment Rack |
 | **Gear** | Modular functional unit (Native or Wasm). | Effect Pedal |
 | **Wire** | Persistent, ordered message queue (NATS). | Signal Path |
-| **Snake** | Secure, multiplexed mTLS tunnel. | Audio Snake |
+| **Snake** | Multiplexed bus connection, over TLS. | Audio Snake |
 | **fluxMsg** | Standardized internal data structure (CBOR). | High-Fi Signal |
 
 ---

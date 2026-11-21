@@ -24,7 +24,7 @@ For network administrators and SREs, the following table summarizes the project'
 | Component | Default Port | Proto | Purpose | Direction |
 | :--- | :--- | :--- | :--- | :--- |
 | **Mixer API** | `8090` | TCP (HTTP) | Centralized Control & Observability API | Inbound to Mixer |
-| **Snake (NATS)** | `4222` | TCP (mTLS) | Distributed Message Bus (The Snake) | Inbound to Mixer |
+| **Snake (NATS)** | `4222` | TCP (TLS) | Distributed Message Bus (The Snake) | Inbound to Mixer |
 | **ISO8583 IO** | `8583` | TCP | Standard Financial Industry Port | Inbound/Outbound |
 | **Generic TCP** | `9000` | TCP | Standard fluxrig Demo Port | Inbound/Outbound |
 
@@ -89,8 +89,8 @@ graph LR
     External ==> RackB
     
     %% Control Flow (The Snake)
-    RackA == "Snake Tunnel (mTLS)" ==> Mixer
-    RackB == "Snake Tunnel (mTLS)" ==> Mixer
+    RackA == "Snake (TLS)" ==> Mixer
+    RackB == "Snake (TLS)" ==> Mixer
     
     %% Persistence
     Mixer --- Registry

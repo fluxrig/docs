@@ -29,6 +29,7 @@ make build
 ```
 
 This will produce the two core binaries in the `./bin` directory:
+
 *   `fluxrig-mixer`: The centralized Control Plane (Registry, Telemetry, NATS Bus).
 *   `fluxrig`: The unified CLI and Edge Node (The Rack).
 

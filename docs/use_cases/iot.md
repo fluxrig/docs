@@ -25,12 +25,12 @@ Use it for disconnected environments (e.g., Cold Chain, AgTech). The **Rack** ac
 Use it for individual telematic units or industrial vehicles.
 
 *   **Sovereign telemetry**: Use the **[Bento Gear](../reference/gears/bento.md)** to map what the gateway publishes over TCP, HTTP or WebSocket into semantic `fluxMsg` events. A CAN or Modbus segment reaches it through the concentrator that already terminates it.
-*   **Zero trust identity**: Every asset operates with independent mTLS certificates. A compromised peripheral cannot impact the wider fleet.
+*   **Identity for each node**: Every Rack holds its own secret and a passport that the Mixer signed. The bus itself does not authenticate it: keep the bus on a network that only the fleet reaches.
 
 ### The LPWAN consolidation hub
 Multiplex a dense sensor estate, whatever radio it runs on, into one stream. The network server terminates the radio. A Rack takes it from there.
 
-*   **Telemetry aggregation**: The hub collects data from thousands of low-power leaf nodes. It flattens the telemetry into a unified schema. It flushes it to the Management Mixer via a secure mTLS tunnel.
+*   **Telemetry aggregation**: The hub collects data from thousands of low-power leaf nodes. It flattens the telemetry into a unified schema. It flushes it to the Management Mixer over the Snake, with TLS.
 
 ---
 

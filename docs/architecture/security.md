@@ -17,19 +17,23 @@ To protect infrastructure from external threats, we implement a strict **"Inboun
 ### Invisible infrastructure
 By moving all orchestration and management logic to an outbound-only tunnel, **fluxrig** removes standard vectors (SSH, HTTP, SNMP) as public entry points. This sharply reduces the network attack surface. External scans effectively cannot see the Rack.
 
-*   **Secure Tunnel**: All control messages (registry updates, orchestration) and telemetry travel through a persistent, outbound-only **mTLS** connection to the central Mixer.
+*   **Outbound connection**: All control messages (registry updates, orchestration) and telemetry travel through a persistent, outbound-only connection to the bus: the NATS server embedded in the Mixer, or, with `snake.external = true`, the [NATS](https://docs.nats.io) cluster that the operator runs. It runs over TLS when the server has a certificate.
 *   **Data Plane Isolation**: The Rack opens only listening ports explicitly defined by its I/O Gears (for example, a specific TCP socket for protocol ingestion). The Rack isolates these ports strictly from its internal administration and telemetry bus.
 
 ### The identity registry
 The **Identity Registry** is the foundation of the Unified Control Plane. It maintains the definitive mapping of all Racks, Gears, and Wires in the cluster. Every message therefore carries a cryptographic link to a verified entity.
 
-### The secure mTLS tunnel
-The management tunnel uses a **Cryptographic Handshake** that enforces full mutual identity:
+### Rack identity
+A Rack proves who it is with its enrollment, not with its connection:
 
-- **Identity Minting**: The Mixer acts as the Cluster CA. It issues short-lived, cryptographically-locked certificates to Racks.
-- **Mutual Authentication**: Both the Rack and Mixer must present valid Ed25519-backed credentials.
-- **Multiplexed Data Streams**: The tunnel acts as a multiplexed pipe. Hundreds of independent logical streams travel over a single physical connection without head-of-line blocking.
-- **Bypass Prevention**: The Mixer rejects at the transport layer any message entering without a valid, signed certificate.
+- **Enrollment**: A new Rack presents the bootstrap secret (`rack.bootstrap_secret`, which must match the Mixer's). After approval, the Mixer issues a secret for that Rack alone, and the Rack sends it in each heartbeat.
+- **Passport**: The Mixer signs the identity of the Rack with its Ed25519 cluster key, in `rack.flux`. The Rack keeps the key of the first passport it accepts, and refuses a passport that another key signed.
+- **One connection**: The connection carries many independent streams of messages.
+
+What the connection proves depends on the mode of the bus:
+
+- **Embedded mode** (the default): the connection does not authenticate the Rack. The embedded server checks no client certificate and has no users, so a client that reaches its port can read and write every subject, and use the JetStream API.
+- **External mode** (`snake.external = true`): the NATS cluster of the operator can authenticate each Rack, by a client certificate or a NATS credentials file, and limit it to the subjects it uses. See [the bus in transit](#the-bus-in-transit).
 
 ---
 
@@ -54,6 +58,8 @@ What it protects: the files on the disk, a copy of the store directory, and a ba
 *   **A store that was encrypted does not open without its key**. The Mixer refuses to start, with an error that says so, rather than open an empty store. A wrong key fails the start in the same way.
 *   **Changing the key.** Save the key the store uses now, for example `fluxrig keys store-key /path/to/cluster.key > store-old.key` for a derived one. Set `snake.store_old_key_file` to that file next to the new key, and start the Mixer: it re-encrypts the store. Later starts do not need the old key file.
 
+These settings apply to the embedded server. In the external mode the Mixer keeps no message store: the NATS cluster holds the messages and the buckets, and its store, encryption at rest included, belongs to the operator.
+
 The retention of a bus stream observes bounds by `snake.stream_max_age` and `snake.stream_max_bytes`.
 
 The setting covers the message store of the bus. It does not encrypt the Mixer analytics database (DuckDB) or its Parquet files. The logs, spans and metrics of the Mixer and the Racks end up there.
@@ -62,7 +68,39 @@ Those files underwent a search with a real ISO 8583 authorization: the `19_card_
 
 ### The bus in transit
 
-The Mixer can serve the bus over TLS (`snake.tls_cert_file`, `snake.tls_key_file`). It also accepts connections without TLS, and it does not check client certificates. Anyone who can reach the port of the bus can connect and subscribe to every subject. Keep the port on a network that only your Racks and your Mixer can reach. Requiring TLS and authenticating each Rack on the bus is `[Roadmap]`.
+What the bus checks depends on its mode. `snake.root_ca_file` verifies the server certificate in both modes.
+
+**Embedded mode (the default).** The Mixer serves the bus over TLS (`snake.tls_cert_file`, `snake.tls_key_file`). With a certificate it refuses a connection without TLS, unless `snake.allow_non_tls` is set. This is server TLS only:
+
+- The embedded server has no users and no permissions. Anyone who can reach the port of the bus can connect and subscribe to every subject.
+- It does not authenticate a client by its certificate. The Mixer connects to its own server with no client certificate, so `snake.tls_verify` is not usable in this mode.
+
+Keep the port on a network that only your Racks and your Mixer can reach.
+
+**External mode (`snake.external = true`).** The Mixers and the Racks connect to a NATS cluster that the operator runs. That cluster decides which clients connect and what each client can do. A Mixer or a Rack proves who it is in one of two ways:
+
+- **A client certificate.** The client presents `snake.client_cert_file` and `snake.client_key_file` to a NATS server that asks for a client certificate. Set both or neither. With `verify_and_map` in the TLS block of the NATS server, NATS maps the subject of the certificate to a user of its authorization block.
+- **A credentials file.** `snake.credentials_file` is a NATS credentials file, with the user and the permissions that the operator gave that client.
+
+#### Permissions for each Rack
+
+`fluxrig scenario permissions` writes one NATS user for each Rack of one or more scenario files. Each user can use only the subjects that its Rack uses: its own messages, events and notifications, the wires it consumes, the events its gears read and the buckets they use. Put the users in the authorization block of the external NATS. Write them again when a scenario changes. The subjects and the command are in the [security reference](../reference/security_reference.md#nats-users-for-each-rack).
+
+Forwarded control writes use `flux.mixer.control.>` and carry no caller identity. Keep this subject outside Rack permissions. See [the security reference](../reference/security_reference.md#nats-users-for-each-rack).
+
+The replies and the notifications of a Rack go on subjects that carry its name:
+
+- Each Rack has its own reply inbox, `_INBOX_<rack>`. The Mixer keeps `_INBOX`.
+- The Mixer answers an enrollment on `flux.agent.enrollment.<rack>.<nonce>`.
+- The Mixer sends a Rack its status, its commands and its passport on `flux.agent.notify.<rack>.<machine-id>`.
+
+Thus the user of a Rack cannot read the replies or the passport of another Rack. NATS refuses a publish or a subscribe that a user is not allowed, and the client logs the refusal at ERROR, with the connection name.
+
+The permissions of a Rack do not refuse these three things:
+
+- **Telemetry under the name of another Rack.** A Rack can publish on every telemetry subject. The Mixer attributes each log by its payload, not by its subject.
+- **A message on the subject of a wire that the Rack consumes.** The Rack publishes a sync probe there before its gears start. The other consumers of that wire skip a probe, but they take any other message.
+- **The description of a consumer of another Rack, on a stream that both Racks use, when the Rack knows the name of the consumer.** The description gives the filter subject and the position of the consumer, not its messages. A Rack looks up its own consumers when it misses heartbeats, and the names of the consumers are random.
 
 ### Logs
 
@@ -110,7 +148,8 @@ While the current release uses secure file-based keys, the roadmap includes nati
 
 | Feature Area | Status | Implementation Strategy |
 | :--- | :--- | :--- |
-| **mTLS Tunnel** | **Available** | Outbound secure tunnel (TLS 1.2+ Baseline). |
+| **Bus over TLS** | **Available** | The Mixer serves the bus over TLS 1.2 or later. |
+| **Client authentication and permissions for each Rack** | **Available (external mode)** | A Rack or a Mixer presents a client certificate or a NATS credentials file to the NATS cluster of the operator. `fluxrig scenario permissions` writes a NATS user for each Rack. The embedded mode has server TLS only. |
 | **Sovereign ID** | **Available** | Signed State Envelopes (`rack.flux`). |
 | **Field Masking** | **Planned**   | Deterministic PII scrubbers (future). |
 | **Cloud KMS** | **Planned**   | AWS/Google KMS integration for Authority keys. |

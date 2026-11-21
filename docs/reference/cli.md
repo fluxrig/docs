@@ -41,15 +41,25 @@ Wasm payloads use cryptographic identities to ensure secure edge distribution.
 |---------|-------------|
 | `fluxrig wasm sign <file>` | Sign a `.wasm` file using an Ed25519 vendor key |
 | `fluxrig wasm import <file>` | Import and validate a signed Wasm binary into the Mixer catalog |
+| `fluxrig wasm keys list` | List the trusted vendors of the keyring, with the SHA-256 fingerprint of each key, revoked ones included |
+| `fluxrig wasm keys trust <vendor> <key-file>` | Trust a vendor key on every Mixer, or replace it |
+| `fluxrig wasm keys revoke <vendor>` | Stop trusting a vendor on every Mixer |
 
 **Usage**:
 ```bash
-# Developer: sign the compiled logic
-fluxrig wasm sign my_logic.wasm --key ./vendor.key
+# Developer: sign the compiled logic with the vendor key file
+fluxrig wasm sign my_logic.wasm ./vendor.key
 
-# Operator: import the logic into the sovereign catalog
+# Operator: trust the vendor, then import the logic into the sovereign catalog
+fluxrig wasm keys trust acme ./vendor.key.pub
 fluxrig wasm import my_logic.wasm
 ```
+
+The trusted vendor keys are one keyring on the bus, shared by every Mixer. `trust` takes the 32-byte Ed25519 public key of the vendor in a file whose name ends in `.pub`, or the key file that `fluxrig wasm sign` uses, and sends its public half. It refuses a 32-byte file with another name: `fluxrig wasm sign` also reads 32 bytes, as a private seed. `fluxrig keys gen-cluster --out vendor.key` writes both: `vendor.key` and `vendor.key.pub`. A vendor name is 1 to 64 letters, digits, `-` and `_`. A revoked vendor stays in the keyring as revoked, so a key file in `wasm.trusted_keys_dir` does not add it back. See [Trusted vendor keys](security_reference.md#trusted-vendor-keys).
+
+**Flags for `keys`**:
+
+- `--api-url` and `--api-token` - As in [Administration](#administration).
 
 ### Administration
 
@@ -153,6 +163,7 @@ Scenarios define the operational topology used for testing and simulation. You c
 | **`list`** | List all stored scenarios. |
 | **`export <urn> <file>`** | Export a CAS scenario for local editing. |
 | **`diff <file>`** | Compare local scenario file with the active one. |
+| **`permissions <file>...`** | Write one NATS user for each Rack of one or more scenarios, limited to the subjects that the Rack uses. |
 
 **Usage**:
 ```bash
@@ -173,6 +184,19 @@ fluxrig scenario diff main.yaml
 - `--api` - Sync with Mixer API immediately
 - `--activate` - With `--api`: activate the scenario after the import, which deploys it to its Racks. Upload the specs that it names first.
 - `--store-dir` - CAS store location (default: `~/.fluxrig/store`)
+
+**Flags for `permissions`**:
+
+- `--rack` - Rack to write a user for. Repeat it for each Rack. Default: the Racks that the gears are deployed to. A gear that names no Rack runs on every Rack, so a scenario with one needs `--rack`.
+- `--user` - NATS user of a Rack, with `{rack}` for its name (default: `{rack}`). With `verify_and_map` in the TLS block of NATS, it is the subject of the certificate of the Rack.
+- `-c, --config` - Rack configuration file that the subject names are read from (default: the Rack defaults).
+
+```bash
+fluxrig scenario permissions main.yaml --rack rack-a --rack rack-b \
+  --user 'CN={rack},O=example' --config rack.toml
+```
+
+The command writes the users to stdout. Put them in the authorization block of the external NATS, and generate them again when a scenario changes. See [NATS users for each Rack](security_reference.md#nats-users-for-each-rack).
 
 **Visualising a scenario**:
 

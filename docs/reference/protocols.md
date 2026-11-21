@@ -14,10 +14,10 @@ This document serves as the canonical reference for the internal communication p
 
 ## Snake protocol (transport layer)
 
-The **Snake Protocol** is the secure mTLS transport layer. It connects distributed Racks to the central Mixer.
+The **Snake Protocol** is the NATS transport for Racks and Mixers. The Mixer runs the NATS server by default. With `snake.external = true`, both connect to the operator's NATS cluster.
 
-*   **Transport**: NATS TCP + TLS.
-*   **Security**: Mutual TLS (mTLS).
+*   **Transport**: NATS over TCP. The connection uses TLS when configured.
+*   **Security**: The embedded server uses TLS when `snake.tls_cert_file` is set. An external NATS cluster can also authenticate clients by certificate or credentials file.
 *   **Encoding**: Binary (CBOR).
 
 ---
