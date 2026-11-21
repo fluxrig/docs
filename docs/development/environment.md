@@ -66,7 +66,7 @@ graph LR
         Rack["The Rack (Data Plane)"]
         CLI["fluxrig CLI"]
         
-        Rack == "mTLS Handshake" ==> Snake
+        Rack == "TLS" ==> Snake
         Rack == "Status Stream" ==> Snake
         CLI == "Management (REST)" ==> API
     end

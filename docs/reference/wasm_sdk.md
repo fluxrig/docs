@@ -13,6 +13,7 @@ This document defines the Application Binary Interface (ABI) and host capabiliti
 > **Current topology role**: The project currently implements the Wasm gear strictly as a **Filter** gear (1-to-1 or 1-to-0). It receives exactly one input message, processes it synchronously, and returns exactly one output message (or drops it).
 
 Because of this strict filter pattern, the Wasm gear uses **implicit ports**. You do not need to define a `ports` block in its configuration.
+
 - **Input (`.in`)**: The router automatically routes incoming messages to the gear's `.in` port, which triggers the Wasm `process()` function.
 - **Output (`.out`)**: The gear automatically emits the result that `process()` returns on the `.out` port.
 
@@ -31,6 +32,7 @@ Your Wasm module **must** export the following three functions:
 alloc(len: i32) -> i32
 ```
 The host calls it to allocate memory inside the guest's linear memory.
+
 - **`len`**: The number of bytes the guest allocates.
 - **Returns**: It returns an `i32` pointer to the allocated memory block.
 
@@ -39,6 +41,7 @@ The host calls it to allocate memory inside the guest's linear memory.
 free(ptr: i32, len: i32)
 ```
 The host calls it to free memory that the guest previously allocated.
+
 - **`ptr`**: It gives the starting pointer of the memory block.
 - **`len`**: It gives the length of the memory block in bytes.
 
@@ -47,6 +50,7 @@ The host calls it to free memory that the guest previously allocated.
 process(ptr: i32, len: i32) -> i64
 ```
 The main execution entrypoint. The host calls it when a new message arrives at the Gear.
+
 - **`ptr`**: A pointer to the CBOR-encoded `fluxMsg` payload that the host already wrote to guest memory.
 - **`len`**: It gives the length of the CBOR payload in bytes.
 - **Returns**: It returns a packed 64-bit integer (`i64`). The host uses bitwise shifting to unpack this into two 32-bit integers:
@@ -66,6 +70,7 @@ To interact with the host system (e.g., logging or state access), the host expos
 env.log(level: i32, ptr: i32, len: i32)
 ```
 It emits a structured log message to the Rack's central telemetry stream.
+
 - **`level`**: It gives the severity level (e.g., `1`=Debug, `2`=Info, `3`=Warn, `4`=Error).
 - **`ptr`**: It gives the pointer to the UTF-8 encoded log message.
 - **`len`**: It gives the length of the log message.
@@ -83,6 +88,7 @@ env.emit(ptr: i32, len: i32)
 For performance, the `fluxrig` host does not pass strings or JSON. Input payloads are **CBOR encoded** (RFC 8949) representations of the `fluxMsg` struct.
 
 Your module must:
+
 1. Decode the CBOR payload from the input pointer.
 2. Apply business logic to the `fluxMsg` fields (e.g., routing headers, raw payload, metadata).
 3. Encode the modified data back into CBOR.

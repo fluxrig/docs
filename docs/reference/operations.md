@@ -19,8 +19,7 @@ Two processes run the system. They have different jobs and different failure con
 | **Rack** (`fluxrig`) | Runs a scenario: receives, transforms and forwards traffic | Traffic on that node stops |
 | **Mixer** (`fluxrig-mixer`) | Enrolls Racks, deploys scenarios, collects telemetry | Traffic keeps flowing; nothing new can be deployed |
 
-A Rack connects outbound to the Mixer over mTLS. The Mixer never dials a Rack,
-so a Rack behind NAT or inside an isolated segment needs no inbound rule.
+A Rack connects outbound to the NATS server that serves its Mixer. By default, that server is embedded in the Mixer. With `snake.external = true`, the Rack and Mixer connect to the operator's NATS cluster. The Mixer never dials a Rack, so a Rack behind NAT needs no inbound rule.
 
 ## Starting the Mixer
 
@@ -29,11 +28,7 @@ fluxrig-mixer -c fluxrig-mixer.toml            # config file
 fluxrig-mixer -c fluxrig-mixer.toml -s flow.yaml   # and a scenario to load at boot
 ```
 
-It listens on two ports: the API on **8090** and the bus on **4222**. The bus is
-embedded, not a dependency: the Mixer runs its own NATS server (the Snake), so
-there is no broker to deploy beside it.
-
-That is a constraint as well as a convenience. **No existing NATS deployment can replace the bus**: the Mixer starts its own on every boot, and no configuration points it at another. You can configure where it listens (`snake.port`) and what address Racks receive for it (`snake.url`). The bus can move host and port but remains the Mixer's.
+By default, the Mixer listens on the API port **8090** and the bus port **4222**. The bus is an embedded NATS server called the Snake. Set `snake.external = true` to use an operator-managed NATS cluster instead. In that mode, configure `snake.url` and the Mixer credentials for the cluster. The Rack and Mixer connect outbound to that cluster.
 
 On first start it writes its own identity and creates what it needs. It places these files under the
 store directory (`./data` by default):

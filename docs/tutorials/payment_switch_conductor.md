@@ -47,7 +47,7 @@ Two design rules make this correct:
 This tutorial composes the full stack across two regions, so it assumes the single-Rack fundamentals. Work through the [ISO 8583 robot suite](iso8583_robot_suite.md) first: it covers the ISO 8583 request/response loop and the test harness this switch builds on. Then:
 
 *   A running Mixer, deployed in the main region (east in this tutorial) and reachable from both regions (see the [quickstart](quickstart.md)).
-*   Two Racks enrolled and adopted: `rack-east`, `rack-west` (one per region, connected outbound to the Mixer over mTLS).
+*   Two Racks enrolled and adopted: `rack-east`, `rack-west` (one per region, connected outbound to the Mixer).
 *   An ISO 8583 spec file for your message format (see the [ISO 8583 SDL reference](../reference/specs/iso8583_sdl.md)). This tutorial uses `specs/switch_v87.yaml` for both decode and encode. To read what a spec says before wiring it, render its [protocol reference](../reference/specs/protocol_reference.md).
 *   Scheme connectivity from each region: one endpoint per scheme (host, port, TLS material). Placeholders are used below.
 

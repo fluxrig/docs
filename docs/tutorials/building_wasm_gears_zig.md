@@ -7,11 +7,13 @@ Use Zig for Wasm gears. It generates small binaries. It has no hidden runtime. I
 ## The fluxrig Wasm ABI
 
 To interact with the fluxrig host (Mixer/Rack), your Wasm module must export the following functions:
+
 - `alloc(len: i32) -> i32`: Allocates memory in the Wasm guest and returns a pointer.
 - `free(ptr: i32, len: i32)`: Frees memory.
 - `process(ptr: i32, len: i32) -> i64`: The main entrypoint. The input pointer contains the CBOR-encoded `fluxMsg`. The function returns a packed 64-bit integer (high 32 bits = return pointer, low 32 bits = return length).
 
 You can also import host functions to interact with the Rack:
+
 - `env.log(level: i32, ptr: i32, len: i32)`: Emits a log message to the Rack's structured logger.
 
 ## 1. Writing the Zig gear

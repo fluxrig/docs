@@ -23,6 +23,7 @@ Unlike legacy brokers with single-threaded event loops or forked processes, the 
 
 ### Concurrency safety
 Because Gears run in parallel, **fluxrig** enforces a strict separation of concerns:
+
 *   **Stateless Gears**: Process millions of messages concurrently without locks.
 *   **Stateful Gears**: (e.g., ISO8583 Client or Coat Check) use internal synchronization primitives (Mutexes/Channels). They manage shared state safely while the platform continues to route other traffic.
 

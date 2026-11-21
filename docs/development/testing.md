@@ -67,7 +67,7 @@ In a "Hard Engineering" environment, a passing test suite is not just the absenc
 
 1.  **Latency SLA (P99 < 5ms)**: Core data-plane operations (Gears/Snake) must maintain a **P99 latency < 5ms** under baseline load. The system measures latency with high-precision **HDRHistograms** to ensure it captures outliers without statistical drift.
 2.  **Zero-Allocation Invariants**: Performance-critical message serialization paths must be **zero-allocation** (validate them via `go test -benchmem`).
-3.  **Bit-for-Bit Trace Integrity**: Validate 100% bit-for-bit checksums on processed signals (mTLS Ingress to WAL Archive).
+3.  **Bit-for-Bit Trace Integrity**: Validate 100% bit-for-bit checksums on processed signals (ingress to WAL archive).
 4.  **Security Posture**: Require zero `HIGH` or `CRITICAL` findings in **Gosec** and **Govulncheck**.
 
 > [!IMPORTANT]

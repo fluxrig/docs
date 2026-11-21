@@ -156,13 +156,24 @@ A translation spec names further artefacts: its protocol specs and its lookup re
 | `201` | Stored. The body gives the `urn`, the `hash` and the `kind`. Identical content uploaded again also gives `201`. |
 | `400` | The artefact does not load. The body names what is wrong. |
 | `409` | The `name:tag` already names other content. Change the version. |
-| `413` | The artefact is larger than [`mixer.max_payload_size`](configuration.md). An artefact travels to the Racks inside the scenario payload, so it cannot be larger than a payload. |
+| `413` | The artefact is larger than [`mixer.max_payload_size`](configuration.md). An artefact travels to the Racks inside the scenario payload, so it cannot be larger than a payload. With the [shared store](#shared-store), also larger than `registry.spec_max_size`. |
+| `503` | With the [shared store](#shared-store), no Mixer holds the write lease, or the store does not answer. Try the upload again. |
 
 Then import the scenario and activate it, which deploys it to its Racks:
 
 ```bash
 fluxrig scenario import --api --activate scenarios/billpay_rtp.yaml
 ```
+
+## Shared store
+
+With `registry.lease_enabled`, the Mixers of a cluster share one spec store. It is the key-value bucket `registry.spec_bucket` (default `fluxrig_specs`) on the bus, with `registry.replicas` copies. Every Mixer reads its specs from this bucket. Thus every Mixer lists the same specs, and sends the same artefacts with a scenario. Without the lease, each Mixer keeps its local store, as described above.
+
+- **An upload goes to the lease holder.** An upload through any Mixer goes to the Mixer that holds the write lease, and that Mixer writes it. When no Mixer holds the lease, the upload answers `503`.
+- **A version names one set of bytes for the whole cluster.** A version that the bucket holds with other bytes answers `409` on every Mixer.
+- **The size has a limit.** A spec larger than `registry.spec_max_size` (default `1048576` bytes) answers `413`. The value is the largest value of the bucket. It must not be larger than the max payload of the NATS server.
+
+The first Mixer of the cluster to hold the lease copies the specs of its local store into the bucket, one time. The Mixer skips a version that the bucket holds with other bytes, or that is too large, and logs it. After that, a Mixer does not use its local store. A version that a CLI imports into the local store directory does not reach the Mixer: [upload it through the API](#upload).
 
 ## Mixer integration
 

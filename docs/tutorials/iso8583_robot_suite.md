@@ -84,7 +84,7 @@ Suite Teardown    Teardown Server Suite         #  Resource recovery
 ```
 
 > [!TIP]
-> **Institutional security**: Under the hood, the suite execution keyword `Generate Cluster Key` bootstraps the internal PKI required for our **mTLS Snake Tunnel** security posture. This ensures we are testing a system-hardened environment from Step 1.
+> **Institutional security**: Under the hood, the suite execution keyword `Generate Cluster Key` creates the cluster key that signs the passports of the Racks, so the suite enrolls them as a deployment does.
 
 ---
 

@@ -19,6 +19,7 @@ To support modern containerized deployments (Docker/Kubernetes), **fluxrig** mer
 The environment variable mapping replaces dots (`.`) with underscores (`_`) and uppercases the key. For example, `base.name` becomes `FLUXRIG_BASE_NAME`.
 
 Top-level overrides for troubleshooting:
+
 * `FLUXRIG_TRACE=true`: Forces all logging to TRACE level (high volume).
 * `FLUXRIG_DEBUG=true`: Forces all logging to DEBUG level.
 * `FLUXRIG_DISABLE_TELEMETRY=true`: Master switch to stop all self-monitoring reporting.
@@ -27,10 +28,29 @@ Top-level overrides for troubleshooting:
 
 Both binaries validate their configuration when they load it, and refuse to start on either of these:
 
-* **A duration that does not parse.** Every setting whose value is a duration (its name ends in `_timeout`, `_interval`, `_wait`, `_delay`, `_age`, `_duration` or `_ttl`) is parsed at load time. A typo such as `operation_timeout = "5 seconds"` fails the start and names the field. Before this check, a bad duration could reach a consumer that ignored the parse error and treated zero as real, which fires the timer immediately.
+* **A duration that does not parse.** Every setting whose value is a duration (its name ends in `_timeout`, `_interval`, `_wait`, `_delay`, `_age`, `_duration`, `_ttl` or `_renew`) is parsed at load time. A typo such as `operation_timeout = "5 seconds"` fails the start and names the field. Before this check, a bad duration could reach a consumer that ignored the parse error and treated zero as real, which fires the timer immediately.
 * **A key that maps to no setting.** A misspelled section or field, such as `[observabilitty]`, fails the start and names the key. Before this check, the key was ignored and the process ran with a default the operator meant to override.
 
 Some keys are read by the loader itself rather than by a struct field, and are accepted: the Rack's `rack.bus.*` and legacy `bus.*` aliases, `store.state_file` and `store.scenario_file`, and the Mixer's `mixer.mixer_name`.
+
+Both binaries also refuse to start on these values:
+
+* `snake.ping_interval` that is not a positive duration, or `snake.max_pings_out` below 1.
+* `snake.ack_wait` that is not longer than `snake.operation_timeout`.
+
+The Rack also refuses to start on these values:
+
+* `snake.failover_after` or `snake.consumer_replicas` below 0.
+* `snake.consumer_missed_heartbeats` below 1.
+
+The Mixer also refuses to start on these values:
+
+* `snake.replicas` below 1, or above 1 without `snake.external`.
+* `snake.external` without `snake.url`, or without `registry.lease_enabled`.
+* `snake.form_timeout` that is not a positive duration.
+* `registry.spec_max_size` below 1 or above 2147483647.
+* With `registry.lease_enabled`: `registry.lease_renew` that is more than half of `registry.lease_ttl`, or a `registry.lease_bucket` or `registry.spec_bucket` that is empty or has the name of another registry bucket.
+* `observability.storage.type` that is not `local`, `s3`, `nats` or `otlp`. The types `s3`, `nats` and `otlp` also need `registry.lease_enabled`, the settings that their type requires, and a positive `observability.storage.batch_interval` and `observability.storage.commit_timeout`.
 
 ## Secret management
 **fluxrig** does not store secrets in plaintext TOML. For sensitive values (e.g., database passwords, API keys):
@@ -115,8 +135,18 @@ Configuration for the underlying transport bus.
 
 | Field | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `url` | `string` | `"nats://localhost:4222"` | NATS Server URL. |
+| `url` | `string` | `"nats://localhost:4222"` | NATS Server URL. A comma-separated list names several servers. |
 | `domain` | `string` | `"flux"` | **JetStream Domain**. Must match Mixer cluster name. |
+| `external` | `bool` | `false` | Set to `true` when `url` names a NATS cluster that the operator runs, as for Mixers with `snake.external`. The Rack then verifies the host of the URL in the server certificate, not `domain`. It also does not delete the ephemeral consumer of a subscription that ended: the consumer expires after `inactive_threshold`. |
+| `client_cert_file` | `string` | `""` | Certificate that the Rack presents to a NATS server that asks for a client certificate. Set it together with `client_key_file`, or set neither. |
+| `client_key_file` | `string` | `""` | Private key of `client_cert_file`. |
+| `credentials_file` | `string` | `""` | NATS credentials file: the NATS user of this Rack, with the permissions that the operator gave it. |
+| `ping_interval` | `string` | `"5s"` | Time between the pings that the Rack sends to its NATS server. After `max_pings_out` pings with no answer, the Rack connects to another server of `url`. Must be a positive duration. |
+| `max_pings_out` | `int` | `3` | Pings with no answer before the Rack connects to another server. At least 1. |
+| `ack_wait` | `string` | `"10s"` | How long a guaranteed-lane or durable consumer waits for an acknowledgement before it delivers the message again. Must be longer than `operation_timeout`, which bounds the processing of one message. |
+| `failover_after` | `int` | `2` | JetStream publishes in a row that find no stream, or JetStream requests in a row that a server answers with no JetStream, before the Rack connects to another server of `url`. `0` turns it off. |
+| `consumer_replicas` | `int` | `0` | Replica count of the consumer of each guaranteed-lane wire and scenario push. `0` takes the replica count of the stream, read again each time the consumer is created. `1` keeps one replica. |
+| `consumer_missed_heartbeats` | `int` | `2` | Consumer heartbeats in a row that a subscription can miss before the Rack replaces its consumer. A heartbeat is due every `operation_timeout`. The new consumer resumes at the first message that the Rack did not settle, so a message can arrive two times. At least 1. |
 | `stream_name` | `string` | `"flux-msg"` | Primary JetStream stream name. |
 | `connect_timeout` | `string` | `"10s"` | Initial connection timeout. |
 | `reconnect_wait` | `string` | `"1s"` | Wait time between reconnect attempts. |
@@ -138,8 +168,8 @@ Configuration for the underlying transport bus.
 | `root_ca_file` | `string` | `""` | CA bundle verifying the Mixer's bus certificate. Also settable as `rack.bus.root_ca_file`. |
 | `insecure_skip_verify` | `bool` | `false` | Skip verification of the bus certificate. Development only. Also settable as `rack.bus.insecure_skip_verify`. |
 | `allow_non_tls` | `bool` | `false` | Mixer only. Lets a plaintext client connect alongside a TLS one once `tls_cert_file`/`tls_key_file` are set. Off by default, so configuring TLS actually requires it instead of just offering it. |
-| `tls_ca_file` | `string` | `""` | Mixer only. CA a Rack's own client certificate is verified against, for mTLS. |
-| `tls_verify` | `bool` | `false` | Mixer only. Requires a Rack to present a client certificate, verified against `tls_ca_file`. |
+| `tls_ca_file` | `string` | `""` | Mixer only. CA that a client certificate is verified against, with `tls_verify`. |
+| `tls_verify` | `bool` | `false` | Mixer only. The embedded server requires a client certificate, verified against `tls_ca_file`. Not usable in this release: the router of the Mixer connects to its own server with no client certificate, and the embedded server has no user for each Rack. For client certificates and a user for each Rack, use an external NATS (see [High availability](high_availability.md)). |
 | `kv_max_bytes` | `int` | `1073741824` | Mixer only. Largest size of a key-value bucket the Mixer provisions, in bytes. Caps it the same way `stream_max_bytes` caps a stream. |
 | `kv_max_value_size` | `int` | `1048576` | Mixer only. Largest single value a key-value bucket accepts, in bytes. |
 | `kv_ttl` | `string` | `"0s"` | Mixer only. Expiry for a key-value bucket entry. `0s` means no expiry. |
@@ -204,6 +234,9 @@ General Mixer settings.
 | `max_payload_size`| `int` | `2097152` | **Global Max Payload (Bytes)**. |
 | `startup_scenario` | `string` | `""` | Scenario reference to load on startup. |
 | `scenario_wait_timeout` | `string` | `"15s"` | Time to wait for Racks to converge when activating a scenario. |
+| `forward_timeout` | `string` | `"5s"` | With `registry.lease_enabled`, how long a Mixer that does not hold the lease waits for the holder to answer a control write that it forwards. It also bounds the read of the lease for `/health`. Set it to cover a round trip between the sites plus the write of the holder. |
+| `follow_interval` | `string` | `"5s"` | With `registry.lease_enabled`, how often a Mixer that does not hold the lease reads the active-scenario pointer. When the pointer changed, the Mixer loads the new scenario. |
+| `queue_group` | `string` | `"fluxrig-mixers"` | With `registry.lease_enabled`, the durable queue group that the Mixers use for the Hello and heartbeat subjects, so one Mixer handles each message. The consumers have the name of the group and the subject, and stay when a Mixer stops. Empty makes every Mixer handle every message. Without the lease it has no effect. |
 
 #### Registry-First Identity Model
 
@@ -223,18 +256,24 @@ Control how new Racks are admitted to the rig.
 | `bootstrap_secret` | `string` | `"fluxrig"` | Shared secret for zero-config enrollment and identity adoption. It ships with a known value, so a deployment that does not set it is running the documented one. |
 
 #### `[Registry]` (Mixer)
-Where the Mixer keeps Rack records, the name index, scenario files and the active-scenario pointer, and how long a Rack counts as online. Both buckets live in the embedded NATS server's store (`snake.store_dir`). See [Identity & registry](registry.md).
+Where the Mixer keeps Rack records, the name index, scenario files and the active-scenario pointer, and how long a Rack counts as online. It also sets the write lease and the shared spec store of several Mixers. The buckets are on the bus: in the store of the embedded NATS server (`snake.store_dir`), or on the external NATS with `snake.external`. See [Identity & registry](registry.md) and [high availability](high_availability.md).
 
 | Field | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
 | `bucket` | `string` | `"fluxrig_registry"` | Key-value bucket for records, names, scenario files and the active pointer. |
 | `liveness_bucket` | `string` | `"fluxrig_liveness"` | Key-value bucket for presence. Must differ from `bucket`. |
-| `replicas` | `int` | `1` | Replica count of both buckets. At least 1. |
+| `replicas` | `int` | `1` | Replica count of the registry, liveness, lease and spec buckets. At least 1. It does not follow `snake.replicas`: set both. With `snake.external`, the Mixer logs a warning when it is lower than `snake.replicas`. |
 | `max_value_size` | `int` | `1048576` | Largest record in bytes, headers included. It bounds a scenario file: a larger one is refused on import. |
 | `liveness_ttl` | `string` | `"90s"` | How long after its last heartbeat a Rack still counts as online. Three heartbeat intervals by default. |
 | `write_retries` | `int` | `3` | How many times a registry write that met a concurrent one is read again and retried before it fails. `0` fails on the first conflict. |
 | `sweep_interval` | `string` | `"10m"` | How often the Mixer repairs what a crash between two registry writes left behind. It also sweeps once at startup. |
 | `orphan_min_age` | `string` | `"5m"` | How old a registry record must be before the sweep treats it as left behind rather than in progress. |
+| `lease_enabled` | `bool` | `false` | Turns on the write lease. One Mixer holds the lease and does every control write: enrollment, approval, removal, status, scenario import and activation, and spec import. The other Mixers forward their control writes to the holder, and every Mixer serves reads. When no Mixer holds the lease, a control write answers 503. With the lease on, every Mixer must use the same cluster key (`store.cluster_key_file`), or it refuses to start. `snake.external` needs it. |
+| `lease_bucket` | `string` | `"fluxrig_lease"` | Key-value bucket that holds the lease. Must differ from `bucket` and `liveness_bucket`. |
+| `lease_ttl` | `string` | `"30s"` | How long the lease stays valid with no renew. The holder stops its writes when it cannot renew within this time. |
+| `lease_renew` | `string` | `"10s"` | How often the holder renews the lease. At most half of `lease_ttl`. |
+| `spec_bucket` | `string` | `"fluxrig_specs"` | With `lease_enabled`, the key-value bucket of the spec store that the Mixers share. Must differ from `bucket`, `liveness_bucket` and `lease_bucket`. The first Mixer of the cluster that holds the lease copies its local spec store into the bucket, one time. Then the Mixers do not use their local spec stores. |
+| `spec_max_size` | `int` | `1048576` | Largest spec in the shared spec store, in bytes. A larger spec answers 413. Must not be more than the max payload of the NATS server. |
 
 #### `[Ingest]` (Mixer)
 Telemetry ingestion buffering and flushing. Neither field is read today: the Mixer flushes telemetry to persistent storage every `telemetry.batch_interval` (default `5s`).
@@ -275,12 +314,21 @@ Local data storage: telemetry, and the topology rows derived from the active sce
 | `cluster_key_file` | `string` | `"cluster.key"` | Key filename (relative to store dir). |
 
 #### `[Snake]`
-Embedded NATS Server (JetStream) settings.
+NATS (JetStream) settings: the embedded server, or with `external` the NATS cluster that the operator runs.
 
 | Field | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `port` | `int` | `4222` | **Server Port** to listen on for NATS connections. |
-| `url` | `string` | `"nats://localhost:4222"` | URL to advertise to Racks. |
+| `port` | `int` | `4222` | **Server Port** to listen on for NATS connections. Not used with `external`. |
+| `url` | `string` | `"nats://localhost:4222"` | URL to advertise to Racks. With `external`, the NATS cluster that the Mixer uses, as a comma-separated list of its servers. Do not embed credentials. `/api/v1/config` removes URL userinfo; use `credentials_file` or client certificates for authentication. |
+| `external` | `bool` | `false` | The Mixer starts no embedded server and uses the NATS cluster at `url`. Several Mixers on one cluster give high availability. Needs `registry.lease_enabled`. The Mixer verifies the host of the URL in the server certificate, not `domain`. At start it needs NATS 2.15.0 or later, JetStream for its account and, when `replicas` is more than 1, a cluster: if one of these is missing, the start fails. |
+| `replicas` | `int` | `1` | Copies of each stream and bucket that the Mixer provisions. The registry buckets take `registry.replicas`. More than 1 needs `external`. With `external`, the Mixer logs a warning below 3. |
+| `form_timeout` | `string` | `"2m"` | With `external`, how long the Mixer tries again while the NATS does not answer, a stream cannot be placed or a bucket cannot be created. Then the start fails. Must be a positive duration. |
+| `client_cert_file` | `string` | `""` | Certificate that the Mixer presents to a NATS server that asks for a client certificate. Set it together with `client_key_file`, or set neither. |
+| `client_key_file` | `string` | `""` | Private key of `client_cert_file`. |
+| `credentials_file` | `string` | `""` | NATS credentials file: the NATS user of this Mixer, with the permissions that the operator gave it. |
+| `ping_interval` | `string` | `"5s"` | Time between the pings that each connection of the Mixer sends to its NATS server. After `max_pings_out` pings with no answer, the connection goes to another server. Must be a positive duration. |
+| `max_pings_out` | `int` | `3` | Pings with no answer before a connection goes to another server. At least 1. |
+| `ack_wait` | `string` | `"10s"` | How long a guaranteed-lane or durable consumer waits for an acknowledgement before it delivers the message again. Must be longer than `operation_timeout` (default `"5s"`). |
 | `domain` | `string` | `"flux"` | JetStream Domain Name. |
 | `cluster_name` | `string` | `"flux"` | JetStream domain the embedded server reports, and what a client uses to reach a domain-scoped server. |
 | `store_dir` | `string` | `"./data/snake"` | Where the embedded server keeps its JetStream store. Empty keeps the default, a `snake` directory under `store.dir`. |
@@ -297,9 +345,13 @@ Embedded NATS Server (JetStream) settings.
 | `dlq_publish_timeout` | `string` | `"5s"` | How long one dead letter publish may wait for the server. The Rack reads the same key. A value that is not a duration stops the start. |
 
 > [!NOTE]
-> The Mixer starts this server itself on every boot. There is no setting that
-> points it at an existing NATS deployment, so these fields move the bus, they
-> do not replace it.
+> By default the Mixer starts the embedded server itself on every boot. With
+> `external = true` it starts no server and uses the NATS cluster at `url`.
+> The operator runs that NATS and keeps its store, encryption at rest
+> included: `port`, `store_dir`, the `store_*` encryption settings and the
+> server TLS settings (`tls_*`, `allow_non_tls`) do not apply, and
+> `fluxrig-mixer --repair` refuses to run. See
+> [high availability](high_availability.md).
 
 ### Dead letter queue
 
@@ -374,6 +426,8 @@ The platform is designed to support multiple observability tiers for various sca
 | `standard` | Arc + OpenSearch | Team deployments | **[Roadmap]** |
 | `enterprise` | ClickHouse + SigNoz | Petabyte scale | **[Roadmap]** |
 
+The `tier` setting does not select a backend. Where the Mixer keeps the telemetry of the Racks is `observability.storage.type`: see [`[Observability.storage]`](#observabilitystorage).
+
 ---
 
 ### `[Observability]`
@@ -382,8 +436,57 @@ Global observability settings.
 | Field | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
 | `enabled` | `bool` | `true` | Enable/disable observability collection. |
-| `tier` | `string` | `"embedded"` | Backend tier. `embedded` is the only one built. `otlp` is **[Roadmap]**. |
+| `tier` | `string` | `"embedded"` | **[Roadmap]** Not read today. Where the Mixer keeps telemetry is `storage.type`, below. |
 | `sampling_rate` | `float` | n/a | **[Roadmap]** Not read today: every trace is kept. |
+
+#### `[Observability.storage]`
+Where the Mixer keeps the telemetry of the Racks.
+
+| Field | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `type` | `string` | `"local"` | `local`, `s3`, `nats` or `otlp`. `local` keeps the telemetry on the disk of each Mixer, as the [embedded tier](#embedded-tier-configuration) describes. With several Mixers, each one then has its own copy, which does not have what arrived while that Mixer was down, and the Mixer logs a warning. `s3`, `nats` and `otlp` need `registry.lease_enabled`. |
+| `batch_interval` | `string` | `"15s"` | With `s3`, `nats` or `otlp`, how often the lease holder commits a batch: one file of each kind to `s3` or `nats`, or one export to `otlp`. The other Mixers see the telemetry up to the last batch. |
+| `commit_timeout` | `string` | `"30s"` | With `s3`, `nats` or `otlp`, the longest time for one upload or export of a batch. A batch that fails is tried again. |
+
+With `s3`, `nats` and `otlp`, the lease holder is the only Mixer that reads the telemetry stream. It confirms a batch only when the store has it, so a new holder continues from the last confirmed batch. Every Mixer keeps the live metrics of each Rack.
+
+With `s3` and `nats`, a batch that is committed again replaces its own files, so the store does not keep a record two times. Every Mixer answers telemetry queries: it gets the files that a query needs into `store.dir/telemetry`, under the same retention as local files. The holder removes the shared files that are older than the retention.
+
+With `otlp`, the Mixers keep no telemetry, and the telemetry queries of the API answer 501. When a holder stops after the collector got a batch and before the stream got the confirmation, the next holder sends that batch again: that one batch can arrive two times.
+
+Shared telemetry stores contain message-adjacent data. The batches contain Rack logs, metrics and spans from traffic that the Mixers route. Treat each bucket and collector as sensitive.
+
+#### `[Observability.storage.s3]`
+A bucket of an S3-compatible object store. The Mixer writes Parquet files to it and creates the bucket when it does not exist.
+
+The Mixer requests SSE-S3 (`AES256`) for each object. The service must support this setting and enforce its encryption policy. Use HTTPS. The Mixer warns when `plaintext` enables HTTP.
+
+| Field | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `endpoint` | `string` | `""` | Host and port of the service, with no scheme. Required with `type = "s3"`. |
+| `bucket` | `string` | `""` | Bucket name. Required with `type = "s3"`. |
+| `prefix` | `string` | `"telemetry"` | Put before every object name. |
+| `region` | `string` | `""` | Region of the bucket. |
+| `access_key_file` | `string` | `""` | File that holds the access key. Empty reads `AWS_ACCESS_KEY_ID`. |
+| `secret_key_file` | `string` | `""` | File that holds the secret key. Empty reads `AWS_SECRET_ACCESS_KEY`. |
+| `ca_file` | `string` | `""` | CA that verifies the certificate of the service, when a public CA does not. |
+| `plaintext` | `bool` | `false` | Uses HTTP instead of HTTPS. Development only. |
+
+#### `[Observability.storage.nats]`
+An object store on the NATS of the Mixers. The Mixer writes the same Parquet files as with `s3`. When the Mixers use an external NATS cluster, the operator must configure encryption at rest for its JetStream store.
+
+| Field | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `bucket` | `string` | `"fluxrig_telemetry"` | Object store bucket. Its index is in the key-value bucket `<bucket>_index`. Both take `snake.replicas` copies. |
+
+#### `[Observability.storage.otlp]`
+An OpenTelemetry collector. The Mixer sends each batch as OTLP over HTTP, with JSON bodies. Use an `https://` endpoint. An `http://` endpoint sends telemetry without encryption, and the Mixer warns at startup.
+
+| Field | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `endpoint` | `string` | `""` | Base URL of the collector, for example `https://collector.example:4318`. The Mixer adds the paths `/v1/logs`, `/v1/metrics` and `/v1/traces`. Required with `type = "otlp"`. |
+| `ca_file` | `string` | `""` | CA that verifies the certificate of the collector, when a public CA does not. |
+| `headers_file` | `string` | `""` | File with extra request headers, one `Name: value` per line, for example an authorization token. |
 
 ---
 
@@ -518,39 +621,24 @@ tier = "embedded"
 
 ---
 
-### [Roadmap] OTLP tier configuration (vendor-neutral)
+### OTLP export
 
-**[Roadmap]** The OTLP tier is not built: fluxrig does not export to an external collector today, and none of the settings on this page under `[Observability.otlp]` is read. The design is an export to any OpenTelemetry-compatible backend.
+The Mixer exports telemetry to an OpenTelemetry collector with `observability.storage.type = "otlp"`, set in [`[Observability.storage.otlp]`](#observabilitystorageotlp). The export is OTLP over HTTP, with JSON bodies. OTLP over gRPC is not built.
 
-#### `[Observability.otlp]`
-OpenTelemetry Protocol exporter settings.
+There is no `[Observability.otlp]` section. A file that sets it fails the start with an unknown key.
 
-| Field | Type | Default | Description |
-| :--- | :--- | :--- | :--- |
-| `endpoint` | `string` | `""` | OTLP gRPC endpoint (e.g., `127.0.0.1:4317`). |
-| `endpoint_http` | `string` | `""` | OTLP HTTP endpoint (alternative to gRPC). |
-| `headers` | `map` | `{}` | Custom headers (e.g., API keys). |
-| `insecure` | `bool` | `false` | Skip TLS verification. |
-| `timeout` | `string` | `"30s"` | Request timeout. |
-
-#### OTLP example **[Roadmap]**
-
-None of this is read today.
+#### OTLP example
 
 ```toml
-[observability]
-enabled = true
-tier = "otlp"
+[registry]
+lease_enabled = true
 
-[observability.otlp]
-endpoint = "otel-collector:4317"
-insecure = false
-headers = { "api-key" = "${OTEL_API_KEY}" }
+[observability.storage]
+type = "otlp"
 
-# Optional: also store raw fluxMsg locally
-[observability.otlp.messages]
-enabled = true
-data_dir = "./data/messages"
+[observability.storage.otlp]
+endpoint = "https://collector.example:4318"
+headers_file = "/etc/fluxrig/otlp-headers"
 ```
 
 ---
