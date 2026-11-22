@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Status | Summary |
 | :--- | :--- | :--- | :--- |
+| [v0.15.1](#v0151) | 2026-11-21 | Delivered | A Rack that enrolls again gets the active scenario from the Mixer, which v0.15.0 dropped, and `enrollment.push_timeout` bounds that push |
 | [v0.15.0](#v0150) | 2026-11-21 | Delivered | Several Mixers share one control plane on an operator-run NATS cluster, with a write lease, shared telemetry and per-Rack permissions. Faster failover detection, batched event and log shipping, and a hardened API and Wasm surface |
 | [v0.14.0](#v0140) | 2026-11-01 | Delivered | A server can greet a client that sent nothing, through durable connection events, a misspelt gear option is refused, a late reply can reach the new connection of its peer, and the Wasm gear refuses an unsigned catalog module and applies its memory limit |
 | [v0.13.1](#v0131) | 2026-10-25 | Delivered | Go 1.26.10 and x/net v0.60.0 close 23 reachable vulnerabilities, an approved Rack gets the active scenario, `fluxrig check` reports a bad configuration and answers in seconds, dead letter publishes and file wire sources are bounded, and a server reply carries the swapped TPDU |
@@ -29,6 +30,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 | [v0.8.0](#v080) | 2026-08-24 | Delivered | EMV chip data: BER-TLV parsing with unknown-tag preservation |
 | [v0.7.1](#v071) | 2026-08-10 | Delivered | ISO 8583 TLV length hardening |
 | [v0.7.0](#v070) | 2026-08-01 | Delivered | Payment switch: Conductor gear, gear manifests, ISO 8583 TLS |
+
+
+## [v0.15.1] - 2026-11-21 {#v0151}
+
+### Added
+
+- **`enrollment.push_timeout`** (default `10s`) bounds the push of the active
+  scenario that follows an enrollment.
+
+### Fixed
+
+- **A Rack that enrolls again gets the active scenario from the Mixer.** In
+  v0.15.0 the push that follows a Hello was dropped every time, with nothing
+  in the log: a Rack that restarted ran the copy of the scenario it had saved,
+  and a Rack that was down when a scenario was activated did not get it when
+  it came back. An approval still pushed the scenario. The push now runs
+  until the Mixer stops, bounded by `enrollment.push_timeout`.
 
 ## [v0.15.0] - 2026-11-21 {#v0150}
 
@@ -540,7 +558,8 @@ The payment-switch release: the **Conductor** transaction switch, a manifest sys
 - **Snake Protocol**: Secure tunneling implementation for Rack-to-Mixer connectivity.
 - **FluxMsg**: Canonical JSON schema for inter-gear communication.
 
-[Unreleased]: https://github.com/jaab-tech/fluxrig/compare/v0.15.0...HEAD
+[Unreleased]: https://github.com/jaab-tech/fluxrig/compare/v0.15.1...HEAD
+[v0.15.1]: https://github.com/jaab-tech/fluxrig/releases/tag/v0.15.1
 [v0.15.0]: https://github.com/jaab-tech/fluxrig/releases/tag/v0.15.0
 [v0.14.0]: https://github.com/jaab-tech/fluxrig/releases/tag/v0.14.0
 [v0.13.1]: https://github.com/jaab-tech/fluxrig/releases/tag/v0.13.1

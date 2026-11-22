@@ -252,7 +252,8 @@ Control how new Racks are admitted to the rig.
 | Field | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
 | `auto_adopt` | `bool` | `false` | If `true`, any new Rack connecting will be immediately set to `active`. Use cautiously in production. |
-| `push_delay` | `string` | `"1s"` | Delay before pushing the initial scenario to a newly adopted Rack. |
+| `push_delay` | `string` | `"1s"` | Delay before pushing the active scenario to a Rack that enrolled, so the Rack can subscribe to its scenario subject first. |
+| `push_timeout` | `string` | `"10s"` | Bounds that push. A push that fails is logged with a Warn, and the Rack gets the scenario at its next enrollment or activation. |
 | `bootstrap_secret` | `string` | `"fluxrig"` | Shared secret for zero-config enrollment and identity adoption. It ships with a known value, so a deployment that does not set it is running the documented one. |
 
 #### `[Registry]` (Mixer)
