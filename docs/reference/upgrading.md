@@ -12,6 +12,43 @@ This page lists what you do to move a running fleet from one release to the next
 
 The page starts at v0.13. For an upgrade from an earlier release, read the BREAKING entries of each release you cross in the changelog.
 
+## From v0.15 to v0.16 {#v015-to-v016}
+
+No existing configuration key changes. The `coatcheck` gear has one new key, `delete_on_restore`, which is off by default. The NATS users that `fluxrig scenario permissions` wrote for v0.15 stay valid, also with the new key on. The changes are in the Rack: the `coatcheck` gear and the ISO 8583 codec.
+
+### Check what acts on a Coat Check timeout
+
+Do this if a wire leaves the `out` port of a `coatcheck` gear in `daemon` mode.
+
+- `flux.event.timeout` means that an entry expired. It does not mean that no reply came. By default, as in v0.15, a restored entry stays until its TTL and then sends the event. Do not send a reversal from this event alone.
+- The daemon takes up the entries parked before it started, and it does not lose an event to the expiry of the bucket. The pipeline can receive more events than it received on v0.15.
+- An entry that expired while no daemon ran has no event, as in v0.15. This includes the restart of the gears at an activation.
+- `timeout.key` repeats when a key is used again. Do not discard an event only because you saw its key before.
+
+### Decide if a restore removes its entry
+
+Do this if an answered transaction must not time out.
+
+Set `delete_on_restore: true` on the `restore` gear after the Mixer and every Rack run v0.16. A repeated reply, or a second restore of the same key, then follows `on_missing` (default `"error"`). A reply at the expiry, or a removal that fails, can still give a timeout event.
+
+### Check the lifetime of parked data
+
+Do this if a `coatcheck` gear parks regulated data, such as a PAN.
+
+An entry that v0.15 parked a second time under the same key has no TTL of its own. It stays in the bucket for up to `max_ttl` (default `"5m"`) if no daemon removes it. The upgrade does not shorten it. An entry that v0.16 parks has the TTL of its last park, rounded up to whole seconds.
+
+### Check who refuses a short Track 2
+
+Do this if you count on the codec to refuse a Track 2 that ends after the service code.
+
+The codec accepts such a Track 2, with no discretionary data, when the expiry is a valid year and month. A host behind fluxrig can receive messages that v0.15 refused. Add a rule to the spec or to the pipeline if the host does not accept them.
+
+### Upgrade the Mixer, then every Rack
+
+1. Upgrade the Mixer.
+2. Upgrade every Rack. Upgrade all the Racks that use the same Coat Check bucket in the same maintenance window. A Rack of v0.15 still stores a second park with no TTL.
+3. `fluxrig admin racks list` shows every Rack as `active` and `online`.
+
 ## From v0.14 to v0.15 {#v014-to-v015}
 
 Upgrade the Mixer and every Rack in the same maintenance window. The Mixer sends a Rack its status, its commands and its passport on `flux.agent.notify.<rack>.<machine-id>`. A Rack of v0.14 listens on a different subject, so a Rack and a Mixer of different versions do not receive these messages from each other. The gears of a Rack continue to run during the window.

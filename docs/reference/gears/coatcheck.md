@@ -63,6 +63,7 @@ Sessionless context correlation: parks fields under a key on store, restores the
 | `mode` | enum: `store`, `restore`, `daemon` | yes | - | store parks fields under the key; restore reattaches them on the matching reply; daemon governs a bucket's TTL. |
 | `await_store` | boolean |  | `true` | store mode: whether the message waits for the entry to be written. True when the reply depends on it: a stripped field that must be reattached, or the connection the reply must go back to. False when the entry only enriches a record, so a slow control plane cannot hold or fail the message; a failed write is logged and the entry is lost. |
 | `default_ttl` | string |  | `1m` | how long a parked entry lives before expiry, e.g. '30s'. The entry is stored with this TTL, so it expires even if the daemon is not running. |
+| `delete_on_restore` | boolean |  | `false` | restore mode: remove the entry after it is restored, so it does not time out. A later reply or restore with the same key then follows on_missing. The removal does not hold the reply and is bounded by store_timeout. |
 | `include_values` | boolean |  | `false` | daemon mode: include the expired entry's data (expired_ctx) in the timeout event this daemon emits. A per-message TTL override (meta.coatcheck.ttl) is honored either way. |
 | `key_fields` | array |  | - | message fields whose values form the correlation key. |
 | `key_normalize` | enum: `trim`, `numeric`, `none` |  | `trim` | how key field values are canonicalized before joining: trim removes surrounding whitespace; numeric also drops leading zeros so fixed-width fields agree across differing specs; none joins them exactly as rendered. |
@@ -138,7 +139,7 @@ The gear behaves as a specialized processor depending on its configured `mode`:
 1. Extracts `key_fields` (Correlation Key) and `value_fields` (Context Blob).
 2. **Key Generation**: The gear joins the extracted key fields and encodes them using **URL-Safe Base64** (`base64.RawURLEncoding`).
 3. Saves the blob to the persistent NATS KV `bucket` with a `ttl`.
-4. Forwards the original message unmodified to the `out` port.
+4. Removes the `value_fields` from the message and forwards it to the `out` port.
 
 ### Mode: restore (Check-Out)
 **Role**: Re-attaches context to a response coming back from a stateless transport.
@@ -147,14 +148,26 @@ The gear behaves as a specialized processor depending on its configured `mode`:
 3. **Found**: Merges context into message metadata and forwards to `out`.
 4. **Missing**: Applies `on_missing` logic (error/drop/forward).
 
+By default the entry stays after a restore, for a repeated reply or a second restore. With `delete_on_restore: true` the gear removes the revision that it restored. A later restore of the key follows `on_missing`. A key that is parked again in the meantime stays.
+
 ### Mode: daemon (Governance)
 **Role**: **Bucket Governance** & Timeout Detection.
-The Mixer manages this **Singleton** virtual gear. Only one instance runs globally per bucket to ensure no split-brain sweeping for expired TTLs.
+A daemon is a gear of the scenario and runs on the Rack it is deployed to. Deploy one for each bucket: the runtime does not check it, and each daemon of a bucket can send its own event for the same expiry.
 
 1. **Governance**: Responsible for creating and configuring the bucket (storage type, replicas).
-2. **Monitoring**: Detects expired keys and emits `flux.event.timeout.{bucket}` events to the Control Plane.
+2. **Monitoring**: Emits a message on its `out` port for each expired key, with `event.type` `flux.event.timeout` and the metadata `timeout.key` and `timeout.bucket`.
 
-An entry carries its own TTL in the bucket, so it expires on its own whether or not the daemon is running. The daemon's role is the **event** on expiry, not the removal: a parked entry does not sit until `max_ttl` because the daemon was slow or down.
+An entry carries its own TTL in the bucket, so it expires on its own whether or not the daemon is running. The bucket counts whole seconds and rounds a TTL up. The daemon's timer keeps the exact TTL. A key that is parked again takes the TTL of the last park.
+
+The daemon's role is the **event** on expiry:
+
+- The event means that the entry expired. It does not mean that no reply came: by default a restored entry expires and sends the event too. Do not send a reversal from this event alone.
+- With `delete_on_restore: true` a restored entry does not time out, unless the reply comes at the expiry or the removal fails.
+- `timeout.key` repeats when a key is used again. It does not identify one transaction.
+- The first of its timer and the bucket's expiry is the timeout. An explicit delete of the key is not a timeout.
+- A daemon that starts takes up the entries already parked, as after a scenario activation.
+- An entry that expired while no daemon ran has no event. The bucket marks it like a deleted entry, so an event for it could be a false timeout. This includes the restart of the gears at an activation.
+- The event is not guaranteed. A daemon that stops between the event and its cleanup can send it again.
 
 ---
 
@@ -172,7 +185,7 @@ The full field list, with types and defaults, is in the **Manifest reference** t
 > A bucket held in the memory of the Rack itself is `[Roadmap]`.
 
 > [!IMPORTANT]
-> **Singleton Governance**: You must always define one `mode: daemon` gear for every bucket. The fluxrig runtime will refuse to start if this dependency is missing, as it is critical for reaping expired tickets and avoiding storage leaks.
+> **One daemon per bucket**: Define one `mode: daemon` gear for every bucket. It creates the bucket with the per-entry TTL enabled, and `store` and `restore` need the bucket. The runtime does not refuse a scenario without one: the store writes then fail unless the bucket exists.
 
 > [!TIP]
 > **TTL Overrides**: You can dynamically override the `default_ttl` per-message by setting the `meta.coatcheck.ttl` metadata field (e.g., in a logic gear or via mapping) before checking in. The gear caps this override at `max_ttl`.
